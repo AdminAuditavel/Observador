@@ -1,4 +1,3 @@
-
 //src/components/VisualFeedDetail.tsx
 
 import React from 'react';
