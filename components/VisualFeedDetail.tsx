@@ -17,15 +17,10 @@ const VisualFeedDetail: React.FC = () => {
           src={post.imageUrl}
           className="w-full h-full object-cover opacity-80"
           alt="Context"
-          loading="eager"
-          referrerPolicy="no-referrer"
           onError={(e) => {
             const img = e.currentTarget as HTMLImageElement;
-            // evita loop infinito caso o fallback também falhe
             img.onerror = null;
-        
-            // fallback estável para protótipo
-            img.src = "https://source.unsplash.com/featured/1200x1600?airport,runway,aviation";
+            img.src = '/placeholders/visual-fallback.jpg';
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/90"></div>
