@@ -1,21 +1,22 @@
 module.exports = {
   content: [
     './index.html',
-    './src/**/*.{js,ts,jsx,tsx,tsx}',
+    './src/**/*.{js,ts,jsx,tsx}',
+    './src/styles/**/*.{css}',
   ],
   darkMode: 'class',
   theme: {
     extend: {
-      // usamos CSS custom properties (tokens) então mapeamos nomes semânticos
+      // mapeamento para suas CSS custom properties (tokens)
       colors: {
-        primary: 'var(--color-primary)',
-        'primary-600': 'var(--color-primary-600)',
-        appbg: 'var(--color-bg)',
-        surface: 'var(--color-surface)',
-        text: 'var(--color-text)',
-        muted: 'var(--color-muted)',
-        success: 'var(--color-success)',
-        danger: 'var(--color-danger)',
+        primary: 'var(--primary)',
+        'primary-600': 'var(--primary)', // ajuste se quiser um tom escuro separado
+        appbg: 'var(--bg)',
+        surface: 'var(--surface)',
+        text: 'var(--text)',
+        muted: 'var(--muted)',
+        success: 'var(--success)',
+        danger: 'var(--critical)',
       },
       fontFamily: {
         display: ['Inter', 'Noto Sans', 'sans-serif'],
@@ -25,10 +26,10 @@ module.exports = {
         lg: 'var(--radius)',
       },
       boxShadow: {
-        soft: 'var(--shadow-soft)',
+        soft: 'var(--shadow-md)',
         subtle: 'var(--shadow-subtle)',
       },
     },
   },
   plugins: [],
-}
+};
