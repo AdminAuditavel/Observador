@@ -42,11 +42,14 @@
   border-radius: .75rem;
 }
 
-.btn-primary {
-  @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold;
-  background-color: var(--primary);
-  color: white;
-  box-shadow: var(--shadow-md);
+/* colocar @apply dentro de uma layer components para evitar erro de escopo */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold;
+    background-color: var(--primary);
+    color: white;
+    box-shadow: var(--shadow-md);
+  }
 }
 
 /* Small utilities */
