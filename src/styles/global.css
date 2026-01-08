@@ -1,103 +1,65 @@
-/* IMPORT tokens first */
-@import './design-tokens.css';
+/* Append these rules to the end of src/styles/global.css (or create src/styles/ui-extras.css and import it) */
 
-/* Reset / base */
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body {
-  margin: 0;
-  font-family: var(--font-sans);
-  background: var(--bg);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: var(--line-height);
-  font-size: var(--text-base);
-  -webkit-font-feature-settings: "ss01" on;
+/* Hero / header */
+.hero-header {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  overflow: hidden;
 }
-
-/* Layout container */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 var(--space-md);
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transform-origin: center;
 }
-
-/* Header */
-.app-header {
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  /* lighter overlay than before: keeps text legible but less heavy */
+  background: linear-gradient(180deg, rgba(0,0,0,0.28), rgba(17,23,34,0.12) 60%, rgba(17,23,34,0.06) 100%);
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  height: 100%;
   justify-content: space-between;
-  gap: var(--space-md);
-  padding: 12px 0;
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 600;
-  font-size: var(--text-lg);
-}
-.brand .logo {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-600));
-  box-shadow: var(--shadow-soft);
+  padding-top: 16px;
+  padding-bottom: 24px;
 }
 
-/* Card */
-.card {
+/* Timeline small cards (horizontal scroll) */
+.timeline-card {
+  min-width: 140px;
   background: var(--surface);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
+  padding: 12px;
   box-shadow: var(--shadow-soft);
-  padding: 14px;
+  flex: 0 0 auto;
 }
 
-/* Buttons */
-.btn {
+/* Feed item */
+.feed-card {
+  background: transparent;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.06);
+}
+
+/* Footer lighter background on mobile */
+.app-footer {
+  background: transparent;
+  position: sticky;
+  bottom: 0;
+  padding: 8px 0;
+}
+
+/* small map button tweak */
+.btn-map {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  cursor: pointer;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-weight: 600;
-}
-.btn-primary {
-  background: var(--primary);
-  color: #fff;
-  box-shadow: var(--shadow-soft);
-}
-.btn-ghost {
-  background: transparent;
-  color: var(--primary);
-  border: 1px solid rgba(31,111,235,0.12);
-}
-
-/* Icon button (mobile-friendly size) */
-.icon-btn {
-  width: 44px;
-  height: 44px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:10px;
-  cursor:pointer;
-}
-
-/* Utilities */
-.muted { color: var(--muted); }
-.lead { font-size: 1.025rem; color: rgba(15,23,36,0.85); margin: 0 0 var(--space-sm) 0; }
-.row { display:flex; gap: 12px; align-items:center; }
-
-/* Small Note / meta */
-.note { font-size: var(--text-sm); color: var(--muted); }
-
-/* Small responsive helpers */
-@media (max-width: 768px) {
-  .container { padding: 0 var(--space-sm); }
-  .brand { font-size: 16px; }
 }
