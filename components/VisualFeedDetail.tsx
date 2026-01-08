@@ -7,13 +7,27 @@ import { POSTS_SBSP } from '../services/mockData';
 const VisualFeedDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const post = POSTS_SBSP.find(p => p.id === id) || POSTS_SBSP[0];
+  const post = POSTS_SBSP.find((p) => String(p.id) === String(id)) || POSTS_SBSP[0];
 
   return (
     <div className="relative h-screen w-full flex flex-col bg-black overflow-hidden">
       {/* Background Media */}
       <div className="absolute inset-0 z-0">
-        <img src={post.imageUrl} className="w-full h-full object-cover opacity-80" alt="Context" />
+        <img
+          src={post.imageUrl}
+          className="w-full h-full object-cover opacity-80"
+          alt="Context"
+          loading="eager"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            const img = e.currentTarget as HTMLImageElement;
+            // evita loop infinito caso o fallback também falhe
+            img.onerror = null;
+        
+            // fallback estável para protótipo
+            img.src = "https://source.unsplash.com/featured/1200x1600?airport,runway,aviation";
+          }}
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/90"></div>
       </div>
 
