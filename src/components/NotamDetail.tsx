@@ -1,5 +1,6 @@
 //src/components/NotamDetail.tsx
 
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { NOTAMS_SBSP } from '../services/mockData';
