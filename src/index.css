@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* -------------------------
+   Design tokens (single source)
+   ------------------------- */
+:root{
+  /* cores */
+  --color-bg: #f7f8fb;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-muted: #6b7280;
+  --color-primary: #135bec;
+  --color-primary-600: #0f4bd6;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+
+  /* escala */
+  --radius: 12px;
+  --shadow-soft: 0 6px 18px rgba(16,24,40,0.06);
+  --shadow-subtle: 0 2px 8px rgba(16,24,40,0.04);
+  --focus-ring: 0 0 0 4px rgba(19,91,236,0.12);
+}
+
+/* modo escuro: ao adicionar .dark no root */
+.dark {
+  --color-bg: #0f1724;
+  --color-surface: #111827;
+  --color-text: #e5e7eb;
+  --color-muted: #9ca3af;
+  --color-primary: #2563eb;
+  --color-primary-600: #1e40af;
+}
+
+/* -------------------------
+   Base styles
+   ------------------------- */
+html,body { height:100%; }
+body {
+  margin:0;
+  font-family: Inter, "Noto Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height:1.45;
+  font-size:16px;
+}
+
+/* helper para usar no index.html: body class="bg-app" */
+.bg-app { background-color: var(--color-bg); }
+
+/* -------------------------
+   Components / utilities (tailwind + custom)
+   ------------------------- */
+
+/* Card */
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: 1rem;
+  transition: transform .18s cubic-bezier(.2,.9,.3,1), box-shadow .18s;
+}
+.card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(16,24,40,0.08); }
+
+/* Buttons */
+.btn {
+  display:inline-flex;
+  align-items:center;
+  gap:.5rem;
+  cursor:pointer;
+  padding:.55rem .9rem;
+  border-radius:10px;
+  font-weight:600;
+  transition: transform .18s, background .18s, box-shadow .18s;
+}
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.12);
+}
+.btn-primary:hover { background-color: var(--color-primary-600); transform: translateY(-2px); }
+.btn-ghost {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid rgba(37,99,235,0.12);
+}
+
+/* Form inputs */
+.input {
+  padding:.6rem .75rem;
+  border-radius:8px;
+  border:1px solid rgba(15,23,42,0.06);
+  background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(250,250,250,0.95));
+  color: var(--color-text);
+}
+.input:focus {
+  outline:none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--color-primary);
+}
+
+/* small helpers */
+.muted { color: var(--color-muted); }
+.lead { font-size:1.025rem; color: rgba(15,23,42,0.75); margin:0 0 .75rem 0; }
+
+/* Accessibility */
+:focus { outline:none; }
+:focus-visible { box-shadow: var(--focus-ring); border-radius:8px; }
+
+/* respects reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
+}
