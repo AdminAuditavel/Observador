@@ -1,3 +1,5 @@
+//src/services/apiClient.ts
+
 export async function getAerodromeSummary(icao = 'SBSP') {
   try {
     const r = await fetch(`/api/aerodrome/${icao}/summary`);
