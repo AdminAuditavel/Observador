@@ -1,297 +1,220 @@
 //src/components/AirportHome.tsx
 
-import React, { useCallback, useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AIRPORT_SBSP as LOCAL_AIRPORT, TIMELINE_SBSP, POSTS_SBSP } from '../services/mockData';
+import { AIRPORT_SBSP, TIMELINE_SBSP, POSTS_SBSP } from '../services/mockData';
 import { VisualPost } from '../types';
 import NewPostModal from './NewPostModal';
-import { getAerodromeSummary, getAerodromeFeed } from '../services/apiClient';
-import Button from './Button';
-import Card from './Card';
 
 interface AirportHomeProps {
   onOpenWeather: () => void;
 }
 
-const PLACEHOLDER_IMG = 'https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&q=80&w=800';
-
 const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const navigate = useNavigate();
-
   const [posts, setPosts] = useState<VisualPost[]>(POSTS_SBSP);
-  const [airportSummary, setAirportSummary] = useState<any>(null);
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
 
-  const handleAddPost = useCallback((newPost: VisualPost) => {
-    setPosts(prev => [newPost, ...prev]);
-    setIsNewPostModalOpen(false);
-  }, []);
-
-  const handleOpenModal = useCallback(() => setIsNewPostModalOpen(true), []);
-  const handleCloseModal = useCallback(() => setIsNewPostModalOpen(false), []);
-
-  const onArticleKeyDown = useCallback((e: React.KeyboardEvent, postId: string) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      navigate(`/post/${postId}`);
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const summary = await getAerodromeSummary('SBSP');
-        if (mounted && summary) {
-          setAirportSummary(summary);
-        } else {
-          setAirportSummary({ metar: LOCAL_AIRPORT.metar, stats: LOCAL_AIRPORT.stats });
-        }
-      } catch (e) {
-        setAirportSummary({ metar: LOCAL_AIRPORT.metar, stats: LOCAL_AIRPORT.stats });
-      }
-
-      try {
-        const feed = await getAerodromeFeed('SBSP', 20, 0);
-        if (mounted && feed && Array.isArray(feed.items)) {
-          setPosts(feed.items);
-        } else {
-          setPosts(POSTS_SBSP);
-        }
-      } catch (e) {
-        setPosts(POSTS_SBSP);
-      }
-    })();
-
-    return () => { mounted = false; };
-  }, []);
-
-  const airport = airportSummary ? { ...LOCAL_AIRPORT, ...airportSummary } : LOCAL_AIRPORT;
+  const handleAddPost = (newPost: VisualPost) => {
+    setPosts([newPost, ...posts]);
+  };
 
   return (
     <div className="flex flex-col pb-20">
-      {/* Header / Hero */}
-      <header className="hero-header" aria-labelledby="airport-title">
-        <div
-          className="hero-bg"
-          style={{ backgroundImage: `url(${LOCAL_AIRPORT.bgImage})` }}
-          role="img"
-          aria-label={`${LOCAL_AIRPORT.name} background`}
+      {/* Header with Background */}
+      <header className="relative w-full h-[320px] shrink-0">
+        <div 
+          className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-700" 
+          style={{ backgroundImage: `url(${AIRPORT_SBSP.bgImage})` }}
         >
-          <div className="hero-overlay" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-[#111722]"></div>
         </div>
-
-        <div className="hero-content container">
-          <div className="row" style={{ justifyContent: 'space-between', width: '100%' }}>
-            <button aria-label="Abrir menu" className="icon-btn" title="Menu">
+        
+        <div className="relative z-10 flex flex-col h-full justify-between p-4 pb-6">
+          <div className="flex items-center justify-between">
+            <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10">
               <span className="material-symbols-outlined">menu</span>
             </button>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button aria-label="Favoritos" className="icon-btn" title="Favoritos">
-                <span className="material-symbols-outlined">star</span>
-              </button>
-            </div>
+            <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10">
+              <span className="material-symbols-outlined">star</span>
+            </button>
           </div>
 
-          <div style={{ marginTop: 'auto', width: '100%' }}>
+          <div className="flex flex-col gap-3">
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span className="note" style={{ background: 'rgba(255,255,255,0.18)', padding: '4px 8px', borderRadius: 8, fontWeight: 700 }}>
-                  {LOCAL_AIRPORT.icao} / {LOCAL_AIRPORT.iata}
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white border border-white/10 uppercase">
+                  {AIRPORT_SBSP.icao} / {AIRPORT_SBSP.iata}
                 </span>
-                <span className="note muted">• {LOCAL_AIRPORT.distance}</span>
-                <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.9)' }} aria-hidden>
-                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>update</span> {LOCAL_AIRPORT.lastUpdate}
+                <span className="text-xs font-medium text-gray-300">• {AIRPORT_SBSP.distance}</span>
+                <span className="text-xs font-medium text-gray-300 ml-auto flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">update</span> {AIRPORT_SBSP.lastUpdate}
                 </span>
               </div>
-
-              <h1 id="airport-title" style={{ color: 'white', fontSize: 32, margin: 0, fontWeight: 800, textShadow: '0 4px 18px rgba(0,0,0,0.5)' }}>
-                {LOCAL_AIRPORT.name}
+              <h1 className="text-white text-3xl font-bold leading-tight tracking-tight drop-shadow-lg">
+                {AIRPORT_SBSP.name}
               </h1>
             </div>
-
-            <div style={{ marginTop: 12 }}>
-              <Button
-                variant="primary"
-                onClick={() => { /* open map/route */ }}
-                className="btn-map"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>map</span>
-                <span>Ver mapa / rota</span>
-              </Button>
-            </div>
+            <button className="flex w-full items-center justify-center h-11 bg-primary hover:bg-blue-600 active:bg-blue-700 transition-colors rounded-lg text-white gap-2 px-4 text-sm font-bold shadow-lg shadow-blue-900/20">
+              <span className="material-symbols-outlined text-[20px]">map</span>
+              <span>Ver mapa / rota</span>
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container" role="main" style={{ marginTop: -32 }}>
+      {/* Main Content Area */}
+      <main className="flex flex-col gap-6 -mt-4 relative z-10 px-4">
+        
         {/* Official Summary Card */}
-        <section
+        <section 
           onClick={onOpenWeather}
-          className="card"
-          aria-label="Resumo oficial do aeroporto"
-          role="button"
-          tabIndex={0}
+          className="bg-surface-dark rounded-xl border border-white/5 shadow-xl overflow-hidden cursor-pointer hover:bg-surface-dark-lighter transition-colors"
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid rgba(15,23,36,0.04)' }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: 16 }}>Resumo Oficial</h2>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 8, background: 'rgba(31,111,235,0.08)', color: 'var(--primary)' }}>Oficial</span>
+          <div className="flex items-center justify-between p-4 border-b border-white/5 bg-surface-dark-lighter/30">
+            <div className="flex items-center gap-2">
+              <h2 className="text-white text-lg font-bold">Resumo Oficial</h2>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase">Oficial</span>
             </div>
-
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 999, background: 'var(--success)', display: 'inline-block' }} aria-hidden />
-                <span style={{ fontSize: 12, color: 'var(--success)' }}>{LOCAL_AIRPORT.status}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
               </span>
+              <span className="text-xs font-medium text-green-400">{AIRPORT_SBSP.status}</span>
             </div>
           </div>
-
-          <div style={{ paddingTop: 12 }}>
-            <pre style={{ background: '#0f172433', padding: 12, borderRadius: 8, fontFamily: 'var(--font-mono)', fontSize: 13, color: '#e6eef7', overflowX: 'auto' }}>
-              {airport.metar}
-            </pre>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 12 }}>
-              <StatItem icon="navigation" label="Vento" value={airport.stats.wind} rotate="rotate-45" />
-              <StatItem icon="visibility" label="Visib." value={airport.stats.visibility} />
-              <StatItem icon="cloud" label="Teto" value={airport.stats.ceiling} />
-              <StatItem icon="flight_takeoff" label="Pista" value={airport.stats.runway} />
+          
+          <div className="p-4 flex flex-col gap-4">
+            <div className="bg-[#111722] p-3 rounded-lg border-l-4 border-green-500 font-mono text-xs leading-relaxed text-gray-300">
+              {AIRPORT_SBSP.metar}
             </div>
 
-            <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 8 }}>NOTAMs Críticos</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <div
+            <div className="grid grid-cols-4 gap-2">
+              <StatItem icon="navigation" label="Vento" value={AIRPORT_SBSP.stats.wind} rotate="rotate-45" />
+              <StatItem icon="visibility" label="Visib." value={AIRPORT_SBSP.stats.visibility} />
+              <StatItem icon="cloud" label="Teto" value={AIRPORT_SBSP.stats.ceiling} />
+              <StatItem icon="flight_takeoff" label="Pista" value={AIRPORT_SBSP.stats.runway} color="text-green-500" />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-gray-400 uppercase">NOTAMs Críticos</span>
+              <div className="flex flex-wrap gap-2">
+                <div 
                   onClick={(e) => { e.stopPropagation(); navigate('/notam/n1'); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 999, background: 'rgba(245,158,11,0.08)', cursor: 'pointer' }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      navigate('/notam/n1');
-                    }
-                  }}
-                  aria-label="Abrir NOTAM crítico"
+                  className="flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 pl-2 pr-3 py-1 cursor-pointer hover:bg-yellow-500/20"
                 >
-                  <span className="material-symbols-outlined" style={{ color: 'var(--warning)', fontSize: 16 }}>warning</span>
-                  <div style={{ fontSize: 12, color: 'rgb(145, 126, 24)', fontWeight: 600 }}>Obras na TWY Charlie</div>
+                  <span className="material-symbols-outlined text-yellow-500 text-[16px]">warning</span>
+                  <p className="text-yellow-200 text-xs font-medium">Obras na TWY Charlie</p>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Timeline */}
-        <section style={{ marginTop: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: 16 }}>Linha do Tempo</h3>
-            <button className="btn btn-ghost" onClick={() => navigate('/timeline')}>Ver tudo</button>
+        {/* Timeline Section */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-white text-base font-bold">Linha do Tempo</h3>
+            <span className="text-xs text-primary font-medium cursor-pointer">Ver tudo</span>
           </div>
-
-          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6 }}>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 snap-x">
             {TIMELINE_SBSP.map(item => (
-              <div key={item.id} className="timeline-card">
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>{item.time}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{item.icon}</span>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{item.title}</div>
+              <div key={item.id} className="snap-start shrink-0 flex flex-col items-start gap-2 min-w-[130px] p-3 rounded-lg bg-surface-dark border-l-2 border-primary shadow-sm">
+                <span className="text-xs text-gray-400 font-mono">{item.time}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`material-symbols-outlined text-[18px] text-white`}>{item.icon}</span>
+                  <span className="text-xs font-bold text-white">{item.title}</span>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{item.description}</div>
+                <span className="text-[10px] text-gray-500 leading-tight">{item.description}</span>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Visual Feed */}
-        <section style={{ marginTop: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h3 style={{ margin: 0, fontSize: 16 }}>Feed Visual</h3>
-              <span style={{ fontSize: 11, padding: '4px 8px', borderRadius: 8, background: 'rgba(139, 92, 246, 0.06)', color: '#7c3aed', fontWeight: 700 }}>Colaborativo</span>
+        {/* Visual Feed Section */}
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-white text-base font-bold">Feed Visual</h3>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase">Colaborativo</span>
             </div>
-            <button aria-label="Adicionar foto" onClick={handleOpenModal} className="icon-btn" title="Adicionar foto">
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add_a_photo</span>
+            <button 
+              onClick={() => setIsNewPostModalOpen(true)}
+              className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-white shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined text-[24px]">add_a_photo</span>
             </button>
           </div>
 
-          <div style={{ display: 'grid', gap: 16 }}>
-            {posts.map(post => (
-              <article
-                key={post.id}
-                onClick={() => navigate(`/post/${post.id}`)}
-                onKeyDown={(e) => onArticleKeyDown(e, post.id)}
-                role="button"
-                tabIndex={0}
-                className="feed-card"
-                aria-label={`Post de ${post.author} — ${post.content}`}
-              >
-                <div style={{ position: 'relative', height: 200, overflow: 'hidden', borderRadius: 12 }}>
-                  <img
-                    src={post.imageUrl || PLACEHOLDER_IMG}
-                    alt={post.content || 'Imagem do post'}
-                    loading="lazy"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform .5s' }}
-                    onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
-                  />
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.6), transparent 40%)' }} />
-                  <div style={{ position: 'absolute', top: 12, left: 12 }}>
-                    <div style={{ fontSize: 11, background: 'rgba(0,0,0,0.5)', padding: '6px 8px', borderRadius: 8, color: '#fff', fontWeight: 700 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 12, marginRight: 6 }}>schedule</span>{post.timestamp}
-                    </div>
+          {posts.map(post => (
+            <article 
+              key={post.id} 
+              onClick={() => navigate(`/post/${post.id}`)}
+              className="bg-surface-dark rounded-xl overflow-hidden border border-white/5 shadow-lg active:scale-[0.99] transition-all cursor-pointer group"
+            >
+              <div className="relative h-48 w-full bg-gray-800 overflow-hidden">
+                <img 
+                  src={post.imageUrl} 
+                  alt={post.content} 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&q=80&w=800';
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                <div className="absolute top-3 left-3 flex gap-2">
+                  <span className="px-2 py-1 rounded-md bg-black/60 backdrop-blur-md text-[10px] font-bold text-white border border-white/10 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">schedule</span> {post.timestamp}
+                  </span>
+                </div>
+                {post.confidence === 'Alta Confiança' && (
+                  <div className="absolute top-3 right-3">
+                    <span className="px-2 py-1 rounded-md bg-green-500 text-[10px] font-bold text-white flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px] fill-current">verified</span> {post.confidence}
+                    </span>
                   </div>
-                  {post.confidence === 'Alta Confiança' && (
-                    <div style={{ position: 'absolute', top: 12, right: 12 }}>
-                      <div style={{ fontSize: 11, background: 'var(--success)', padding: '6px 8px', borderRadius: 8, color: '#fff', fontWeight: 700 }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 12, marginRight: 6 }}>verified</span>{post.confidence}
-                      </div>
-                    </div>
-                  )}
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12 }}>
-                    <p style={{ margin: 0, color: '#fff', fontWeight: 600, fontSize: 14, lineHeight: 1.15 }}>{post.content}</p>
+                )}
+                <div className="absolute bottom-0 left-0 w-full p-4">
+                  <p className="text-white font-medium text-sm leading-tight line-clamp-2 drop-shadow-md">{post.content}</p>
+                </div>
+              </div>
+              <div className="p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <img src={post.authorAvatar} alt={post.author} className="h-8 w-8 rounded-full object-cover border-2 border-surface-dark-lighter" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-white">{post.author}</span>
+                    <span className="text-[10px] text-gray-400">{post.authorRole}</span>
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 12, background: 'var(--surface)' }}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <img src={post.authorAvatar || PLACEHOLDER_IMG} alt={`${post.author} avatar`} style={{ width: 40, height: 40, borderRadius: 999, objectFit: 'cover', border: '2px solid rgba(0,0,0,0.04)' }} />
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>{post.author}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>{post.authorRole}</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <button aria-label={`Curtir post ${post.id}`} onClick={(e) => { e.stopPropagation(); }} style={{ display: 'flex', gap: 6, alignItems: 'center', color: 'var(--muted)', background: 'transparent', border: 0 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>thumb_up</span>
-                      <span style={{ fontSize: 12 }}>{post.likes}</span>
-                    </button>
-
-                    <button aria-label={`Denunciar post ${post.id}`} onClick={(e) => { e.stopPropagation(); }} style={{ color: 'var(--muted)', background: 'transparent', border: 0 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>flag</span>
-                    </button>
-                  </div>
+                <div className="flex items-center gap-3">
+                  <button className="flex items-center gap-1 text-gray-400 hover:text-primary transition-colors">
+                    <span className="material-symbols-outlined text-[18px]">thumb_up</span>
+                    <span className="text-xs font-medium">{post.likes}</span>
+                  </button>
+                  <button className="text-gray-400">
+                    <span className="material-symbols-outlined text-[18px]">flag</span>
+                  </button>
                 </div>
-              </article>
-            ))}
-          </div>
+              </div>
+            </article>
+          ))}
         </section>
       </main>
 
       {isNewPostModalOpen && (
-        <NewPostModal
-          onClose={handleCloseModal}
-          onAdd={handleAddPost}
+        <NewPostModal 
+          onClose={() => setIsNewPostModalOpen(false)} 
+          onAdd={handleAddPost} 
         />
       )}
 
-      {/* Footer */}
-      <footer className="app-footer" role="contentinfo" style={{ marginTop: 24 }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
-          <span className="material-symbols-outlined" style={{ color: 'var(--warning)', fontSize: 16 }}>warning</span>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
+      {/* Footer Disclaimer */}
+      <footer className="fixed bottom-0 w-full z-50 bg-[#111722]/90 backdrop-blur-lg border-t border-white/5 py-2 px-4">
+        <div className="flex items-start justify-center gap-2 max-w-md mx-auto">
+          <span className="material-symbols-outlined text-yellow-500 text-[14px] mt-0.5">warning</span>
+          <p className="text-[10px] leading-tight text-gray-400 text-center">
             Informação complementar. Não substitui briefings oficiais. O piloto em comando é a autoridade final.
           </p>
         </div>
@@ -300,16 +223,14 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   );
 };
 
-const StatItemInner: React.FC<{ icon: string, label: string, value: string, rotate?: string, color?: string }> = ({ icon, label, value, rotate = "", color = "" }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 8, borderRadius: 8, background: 'rgba(15,23,36,0.02)', gap: 8 }}>
-    <span className="material-symbols-outlined" style={{ color: color || 'var(--muted)', fontSize: 20 }}>{icon}</span>
-    <div style={{ textAlign: 'center' }}>
-      <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)' }}>{label}</span>
-      <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{value}</span>
+const StatItem: React.FC<{ icon: string, label: string, value: string, rotate?: string, color?: string }> = ({ icon, label, value, rotate = "", color = "text-gray-400" }) => (
+  <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 gap-1">
+    <span className={`material-symbols-outlined ${color} text-[20px] ${rotate}`}>{icon}</span>
+    <div className="text-center">
+      <span className="block text-xs text-gray-400">{label}</span>
+      <span className="block text-sm font-bold text-white">{value}</span>
     </div>
   </div>
 );
-
-const StatItem = React.memo(StatItemInner);
 
 export default AirportHome;
