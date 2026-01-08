@@ -1,8 +1,8 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { POSTS_SBSP } from '../../../../services/mockData';
+// api/aerodrome/[icao]/post.ts
+import { POSTS_SBSP } from '../../../services/mockData';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const icaoRaw = Array.isArray(req.query.icao) ? req.query.icao[0] : req.query.icao;
+export default async function handler(req: any, res: any) {
+  const icaoRaw = Array.isArray(req.query?.icao) ? req.query.icao[0] : req.query?.icao;
   const icao = String(icaoRaw || 'SBSP').toUpperCase();
 
   if (req.method !== 'POST') {
@@ -38,10 +38,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-function parseJsonBody(req: VercelRequest): Promise<any> {
+function parseJsonBody(req: any): Promise<any> {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', (chunk) => (data += chunk));
+    req.on('data', (chunk: any) => (data += chunk));
     req.on('end', () => {
       try {
         resolve(data ? JSON.parse(data) : {});
