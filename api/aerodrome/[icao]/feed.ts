@@ -1,10 +1,10 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { POSTS_SBSP } from '../../../../services/mockData';
+// api/aerodrome/[icao]/feed.ts
+import { POSTS_SBSP } from '../../../services/mockData';
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
-  const icaoRaw = Array.isArray(req.query.icao) ? req.query.icao[0] : req.query.icao;
-  const limit = Number(req.query.limit || 10);
-  const offset = Number(req.query.offset || 0);
+export default function handler(req: any, res: any) {
+  const icaoRaw = Array.isArray(req.query?.icao) ? req.query.icao[0] : req.query?.icao;
+  const limit = Number(req.query?.limit || 10);
+  const offset = Number(req.query?.offset || 0);
 
   const items = POSTS_SBSP.slice(offset, offset + limit).map(p => ({ ...p }));
 
