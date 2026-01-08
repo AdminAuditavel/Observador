@@ -1,3 +1,4 @@
+//components/NewPostModal.tsx
 
 import React, { useState } from 'react';
 import { VisualPost } from '../types';
