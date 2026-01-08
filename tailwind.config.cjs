@@ -1,30 +1,34 @@
 module.exports = {
   content: [
-    "./index.html",
-    "./src/**/*.{ts,tsx,js,jsx,css}"
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx,tsx}',
   ],
   darkMode: 'class',
   theme: {
     extend: {
+      // usamos CSS custom properties (tokens) então mapeamos nomes semânticos
       colors: {
-        primary: '#135bec',
-        background: '#F7FAFC',
-        surface: '#FFFFFF',
-        'surface-muted': '#F3F6F9',
-        'surface-border': '#E6EEF7',
-        text: '#0F1724',
-        muted: '#6B7280',
-        critical: '#ef4444',
-        'purple-accent': '#7C3AED'
+        primary: 'var(--color-primary)',
+        'primary-600': 'var(--color-primary-600)',
+        appbg: 'var(--color-bg)',
+        surface: 'var(--color-surface)',
+        text: 'var(--color-text)',
+        muted: 'var(--color-muted)',
+        success: 'var(--color-success)',
+        danger: 'var(--color-danger)',
       },
       fontFamily: {
         display: ['Inter', 'Noto Sans', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
-      }
-    }
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+      },
+      boxShadow: {
+        soft: 'var(--shadow-soft)',
+        subtle: 'var(--shadow-subtle)',
+      },
+    },
   },
-  plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/container-queries'),
-  ],
-};
+  plugins: [],
+}
