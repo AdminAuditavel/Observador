@@ -1,8 +1,8 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { AIRPORT_SBSP, POSTS_SBSP, NOTAMS_SBSP } from '../../../../services/mockData';
+// api/aerodrome/[icao]/summary.ts
+import { AIRPORT_SBSP, POSTS_SBSP, NOTAMS_SBSP } from '../../../services/mockData';
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
-  const icaoRaw = Array.isArray(req.query.icao) ? req.query.icao[0] : req.query.icao;
+export default function handler(req: any, res: any) {
+  const icaoRaw = Array.isArray(req.query?.icao) ? req.query.icao[0] : req.query?.icao;
   const icao = String((icaoRaw || 'SBSP')).toUpperCase();
 
   const airport = icao === 'SBSP' ? AIRPORT_SBSP : { ...AIRPORT_SBSP, icao };
