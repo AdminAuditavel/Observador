@@ -243,7 +243,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar (ex: SBSP ou fale: Sierra Bravo Sierra Papa)"
+                    placeholder="digite SBIH ou fale Sierra Bravo ..."
                     aria-label="Buscar aeroporto por código ou alfabeto fonético"
                     className="text-xs bg-white/5 placeholder-gray-400 text-white px-3 py-1.5 rounded-md border border-white/5 focus:outline-none focus:ring-1 focus:ring-primary w-[260px] transition-all"
                   />
