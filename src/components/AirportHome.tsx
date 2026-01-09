@@ -1,6 +1,6 @@
 //src/components/AirportHome.tsx
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AIRPORT_SBSP, TIMELINE_SBSP, POSTS_SBSP } from '../services/mockData';
 import { VisualPost } from '../types';
@@ -10,49 +10,94 @@ interface AirportHomeProps {
   onOpenWeather: () => void;
 }
 
+/**
+ * Mapa fonético (NATO) -> letra.
+ * Inclui variantes comuns (ALFA/ALPHA, JULIETT/JULIET, XRAY/X-RAY).
+ */
 const phoneticMap: Record<string, string> = {
-  ALFA: 'A', ALPHA: 'A', BRAVO: 'B', CHARLIE: 'C', DELTA: 'D', ECHO: 'E', FOXTROT: 'F',
-  GOLF: 'G', HOTEL: 'H', INDIA: 'I', JULIETT: 'J', JULIET: 'J', KILO: 'K', LIMA: 'L',
-  MIKE: 'M', NOVEMBER: 'N', OSCAR: 'O', PAPA: 'P', QUEBEC: 'Q', ROMEO: 'R', SIERRA: 'S',
-  TANGO: 'T', UNIFORM: 'U', VICTOR: 'V', WHISKEY: 'W', XRAY: 'X', 'X-RAY': 'X',
-  YANKEE: 'Y', ZULU: 'Z',
+  ALFA: 'A', ALPHA: 'A',
+  BRAVO: 'B',
+  CHARLIE: 'C',
+  DELTA: 'D',
+  ECHO: 'E',
+  FOXTROT: 'F',
+  GOLF: 'G',
+  HOTEL: 'H',
+  INDIA: 'I',
+  JULIETT: 'J', JULIET: 'J',
+  KILO: 'K',
+  LIMA: 'L',
+  MIKE: 'M',
+  NOVEMBER: 'N',
+  OSCAR: 'O',
+  PAPA: 'P',
+  QUEBEC: 'Q',
+  ROMEO: 'R',
+  SIERRA: 'S',
+  TANGO: 'T',
+  UNIFORM: 'U',
+  VICTOR: 'V',
+  WHISKEY: 'W',
+  XRAY: 'X', 'X-RAY': 'X', XRAY.replace('-', ''): 'X',
+  YANKEE: 'Y',
+  ZULU: 'Z',
 };
 
+/**
+ * Normaliza a entrada do usuário tentando extrair um código ICAO (3-4 letras).
+ * Suporta:
+ * - códigos diretos: "SBSP", "sbsp", "S B S P"
+ * - alfabeto fonético: "SIERRA BRAVO SIERRA PAPA", "Sierra Bravo Sierra Papa"
+ * - letras isoladas: "S B S P"
+ * Retorna o ICAO (uppercase) ou null se não for possível extrair.
+ */
 const normalizeSearchToIcao = (input: string): string | null => {
   if (!input) return null;
   const cleaned = input.trim().toUpperCase();
 
-  // If already looks like a 3/4-letter code (letters only), return it
+  // Se já parece um código (apenas letras, 3 ou 4)
   const onlyLetters = cleaned.replace(/[^A-Z]/g, '');
   if (onlyLetters.length >= 3 && onlyLetters.length <= 4 && /^[A-Z]{3,4}$/.test(onlyLetters)) {
     return onlyLetters;
   }
 
-  // Try to parse as phonetic words or letters separated by spaces/commas
-  const tokens = cleaned.split(/[\s,.-]+/).map(t => t.replace(/[^A-Z]/g, ''));
+  // Tokens: separa por espaços, vírgulas, hífens, pontos
+  const tokens = cleaned.split(/[\s,.-]+/).map(t => t.replace(/[^A-Z]/g, '')).filter(Boolean);
   const letters: string[] = [];
 
-  for (const tok of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i];
     if (!tok) continue;
-    // single-letter token (e.g., "S" "B")
+
+    // token único como letra: "S" "B"
     if (tok.length === 1 && /^[A-Z]$/.test(tok)) {
       letters.push(tok);
       continue;
     }
-    // full phonetic word
+
+    // token completo do alfabeto fonético
     const mapped = phoneticMap[tok];
     if (mapped) {
       letters.push(mapped);
       continue;
     }
-    // fallback: if token length is 3 or 4 and alphabetic, treat as letters
+
+    // fallback: token com 3-4 letras (talvez o usuário digitou "SBSP" sem espaços)
     if (/^[A-Z]{3,4}$/.test(tok)) {
       letters.push(...tok.split(''));
       continue;
     }
-    // unknown token -> skip
+
+    // Tentativa adicional: se token contém 'XRAY' escrito com hífen removido
+    if (tok === 'XRAY') {
+      letters.push('X');
+      continue;
+    }
+
+    // Ignora tokens desconhecidos
   }
 
+  // Se conseguimos extrair 3 ou 4 letras, retorna o ICAO
   if (letters.length >= 3 && letters.length <= 4) {
     return letters.slice(0, 4).join('');
   }
@@ -65,35 +110,125 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const [posts, setPosts] = useState<VisualPost[]>(POSTS_SBSP);
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const handleAddPost = (newPost: VisualPost) => {
     setPosts([newPost, ...posts]);
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const result = normalizeSearchToIcao(searchQuery);
     if (result) {
       navigate(`/airport/${result}`);
       setSearchQuery('');
     } else {
-      // Troque por um feedback visual melhor se preferir
+      // Ajuste: trocar por um feedback visual se preferir
       // eslint-disable-next-line no-alert
-      alert('Código não reconhecido. Digite ex: SBSP ou SIERRA BRAVO SIERRA PAPA');
+      alert('Código não reconhecido. Digite ex: SBSP ou fale "Sierra Bravo Sierra Papa".');
     }
   };
+
+  // Inicia reconhecimento de voz (Web Speech API). Ao obter resultado, coloca no campo e tenta navegar automaticamente.
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      // eslint-disable-next-line no-alert
+      alert('Reconhecimento de voz não suportado neste navegador.');
+      return;
+    }
+
+    // Se já existe uma instância, apenas (re)usa
+    if (!recognitionRef.current) {
+      const r = new SpeechRecognition();
+      recognitionRef.current = r;
+
+      // Ajuste de idioma: NATO é inglês, mas muitos usuários falarão em pt-BR (palavras como "SIERRA" são as mesmas).
+      // Usar 'en-US' geralmente funciona melhor para palavras do alfabeto fonético; se preferir, mude para 'pt-BR'.
+      r.lang = 'en-US';
+      r.interimResults = false;
+      r.maxAlternatives = 1;
+      r.continuous = false;
+
+      r.onstart = () => setIsListening(true);
+
+      r.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((res: any) => res[0].transcript)
+          .join(' ')
+          .trim();
+        // Coloca transcrito no campo
+        setSearchQuery(transcript);
+        // Tenta normalizar e navegar automaticamente
+        const normalized = normalizeSearchToIcao(transcript);
+        if (normalized) {
+          navigate(`/airport/${normalized}`);
+          setSearchQuery('');
+        } else {
+          // se não conseguiu normalizar, deixa o texto no input para edição
+          // opcional: mostrar sugestão/erro visual
+        }
+      };
+
+      r.onerror = (_ev: any) => {
+        // Em caso de erro, simplesmente para e indica que não está ouvindo
+        setIsListening(false);
+        // console.warn('Speech recognition error', ev);
+      };
+
+      r.onend = () => {
+        setIsListening(false);
+      };
+    }
+
+    try {
+      recognitionRef.current.start();
+      setIsListening(true);
+    } catch (err) {
+      // start pode lançar se já estiver ouvindo; ignora
+      // console.warn('recognition start error', err);
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
+    setIsListening(false);
+  };
+
+  // interrompe reconhecimento ao desmontar
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onresult = null;
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, []);
 
   return (
     <div className="flex flex-col pb-20">
       {/* Header with Background */}
       <header className="relative w-full h-[320px] shrink-0">
-        <div 
-          className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-700" 
+        <div
+          className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-700"
           style={{ backgroundImage: `url(${AIRPORT_SBSP.bgImage})` }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-[#111722]"></div>
         </div>
-        
+
         <div className="relative z-10 flex flex-col h-full justify-between p-4 pb-6">
           <div className="flex items-center justify-between">
             <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10">
@@ -116,7 +251,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar (ex: SBSP ou SIERRA BRAVO INDIA HOTEL)"
+                    placeholder="Buscar (ex: SBSP ou fale: Sierra Bravo Sierra Papa)"
                     aria-label="Buscar aeroporto por código ou alfabeto fonético"
                     className="text-xs bg-white/5 placeholder-gray-400 text-white px-3 py-1.5 rounded-md border border-white/5 focus:outline-none focus:ring-1 focus:ring-primary w-[260px] transition-all"
                   />
@@ -125,6 +260,19 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                     className="h-8 px-2 rounded-md bg-primary text-white text-sm font-medium hover:bg-blue-600 active:scale-95 transition-all"
                   >
                     Ir
+                  </button>
+
+                  {/* Botão de microfone para reconhecimento de voz */}
+                  <button
+                    type="button"
+                    aria-pressed={isListening}
+                    onClick={() => (isListening ? stopListening() : startListening())}
+                    title={isListening ? 'Parar escuta' : 'Falar (alfabeto fonético)'}
+                    className={`flex items-center justify-center h-8 w-8 rounded-md border ${isListening ? 'bg-red-600 border-red-700' : 'bg-white/5 border-white/10'} text-white transition-all`}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      {isListening ? 'mic' : 'mic_none'}
+                    </span>
                   </button>
                 </form>
 
@@ -147,9 +295,8 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
 
       {/* Main Content Area */}
       <main className="flex flex-col gap-6 -mt-4 relative z-10 px-4">
-        
         {/* Official Summary Card */}
-        <section 
+        <section
           onClick={onOpenWeather}
           className="bg-surface-dark rounded-xl border border-white/5 shadow-xl overflow-hidden cursor-pointer hover:bg-surface-dark-lighter transition-colors"
         >
@@ -166,7 +313,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
               <span className="text-xs font-medium text-green-400">{AIRPORT_SBSP.status}</span>
             </div>
           </div>
-          
+
           <div className="p-4 flex flex-col gap-4">
             <div className="bg-[#111722] p-3 rounded-lg border-l-4 border-green-500 font-mono text-xs leading-relaxed text-gray-300">
               {AIRPORT_SBSP.metar}
@@ -182,7 +329,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
             <div className="flex flex-col gap-2">
               <span className="text-xs font-semibold text-gray-400 uppercase">NOTAMs Críticos</span>
               <div className="flex flex-wrap gap-2">
-                <div 
+                <div
                   onClick={(e) => { e.stopPropagation(); navigate('/notam/n1'); }}
                   className="flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 pl-2 pr-3 py-1 cursor-pointer hover:bg-yellow-500/20"
                 >
@@ -221,7 +368,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
               <h3 className="text-white text-base font-bold">Feed Visual</h3>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase">Colaborativo</span>
             </div>
-            <button 
+            <button
               onClick={() => setIsNewPostModalOpen(true)}
               className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-white shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
             >
@@ -230,15 +377,15 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
           </div>
 
           {posts.map(post => (
-            <article 
-              key={post.id} 
+            <article
+              key={post.id}
               onClick={() => navigate(`/post/${post.id}`)}
               className="bg-surface-dark rounded-xl overflow-hidden border border-white/5 shadow-lg active:scale-[0.99] transition-all cursor-pointer group"
             >
               <div className="relative h-48 w-full bg-gray-800 overflow-hidden">
-                <img 
-                  src={post.imageUrl} 
-                  alt={post.content} 
+                <img
+                  src={post.imageUrl}
+                  alt={post.content}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&q=80&w=800';
@@ -285,9 +432,9 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
       </main>
 
       {isNewPostModalOpen && (
-        <NewPostModal 
-          onClose={() => setIsNewPostModalOpen(false)} 
-          onAdd={handleAddPost} 
+        <NewPostModal
+          onClose={() => setIsNewPostModalOpen(false)}
+          onAdd={handleAddPost}
         />
       )}
 
