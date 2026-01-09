@@ -1,22 +1,30 @@
 //src/components/VisualFeedDetail.tsx
 
-
 import React, { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { GoogleGenAI } from '@google/genai';
 import { AIRPORT_SBSP } from '../services/mockData';
 
-interface WeatherModalProps {
-  onClose: () => void;
+interface VisualFeedDetailProps {
+  onClose?: () => void;
+  modal?: boolean;
 }
 
-const WeatherModal: React.FC<WeatherModalProps> = ({ onClose }) => {
+const VisualFeedDetail: React.FC<VisualFeedDetailProps> = ({ onClose, modal = false }) => {
+  const navigate = useNavigate();
+  const params = useParams<{ id: string }>();
+  // If caller didn't provide onClose (route direct access), default to going back
+  const handleClose = onClose ?? (() => navigate(-1));
+
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
 
   const decodeWithAI = async () => {
     setIsLoadingAi(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // NOTE: process.env won't work in the browser unless injected at build time.
+      // Keep this as-is for now, but consider proxying credentials through your server.
+      const ai = new GoogleGenAI({ apiKey: (process.env.API_KEY as string) || '' });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Analise este METAR/TAF aeronáutico para o aeroporto SBSP e explique em português simples para um piloto, destacando riscos se houver: ${AIRPORT_SBSP.metar}`,
@@ -24,23 +32,23 @@ const WeatherModal: React.FC<WeatherModalProps> = ({ onClose }) => {
           systemInstruction: "Você é um especialista em meteorologia aeronáutica brasileira (REDEMET). Traduza códigos técnicos para linguagem clara e direta."
         }
       });
-      setAiAnalysis(response.text || "Não foi possível analisar no momento.");
+      // response.text may vary depending on SDK shape
+      setAiAnalysis((response as any).text || 'Não foi possível analisar no momento.');
     } catch (error) {
       console.error(error);
-      setAiAnalysis("Erro ao conectar com o serviço de IA. Verifique sua conexão.");
+      setAiAnalysis('Erro ao conectar com o serviço de IA. Verifique sua conexão.');
     } finally {
       setIsLoadingAi(false);
     }
   };
 
+  // If not rendered as a modal, we can omit the backdrop and just show normal page layout.
+  // When modal=true we render the same layout but with backdrop and close handlers.
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col justify-end bg-black/60 backdrop-blur-sm transition-all animate-in fade-in duration-300">
-      <div 
-        className="absolute inset-0" 
-        onClick={onClose}
-      ></div>
-      
-      <div className="relative flex w-full flex-col overflow-hidden rounded-t-2xl bg-background-dark shadow-2xl h-[90vh] animate-in slide-in-from-bottom-full duration-300 border-t border-white/10">
+    <div className={modal ? "fixed inset-0 z-[60] flex flex-col justify-end bg-black/60 backdrop-blur-sm transition-all animate-in fade-in duration-300" : "relative"}>
+      {modal && <div className="absolute inset-0" onClick={handleClose}></div>}
+
+      <div className={`relative flex w-full flex-col overflow-hidden rounded-t-2xl bg-background-dark shadow-2xl ${modal ? 'h-[90vh] bottom-0' : ''} animate-in slide-in-from-bottom-full duration-300 border-t border-white/10`}>
         <div className="flex w-full items-center justify-center pt-3 pb-1 shrink-0">
           <div className="h-1.5 w-12 rounded-full bg-slate-700"></div>
         </div>
@@ -51,7 +59,7 @@ const WeatherModal: React.FC<WeatherModalProps> = ({ onClose }) => {
             <p className="text-slate-400 text-sm font-medium">Aeroporto de Congonhas</p>
           </div>
           <button 
-            onClick={onClose}
+            onClick={handleClose}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-white hover:bg-slate-700 transition-colors"
           >
             <span className="material-symbols-outlined">close</span>
@@ -167,4 +175,4 @@ const WeatherGridItem: React.FC<{ icon: string, label: string, value: string, ex
   </div>
 );
 
-export default WeatherModal;
+export default VisualFeedDetail;
