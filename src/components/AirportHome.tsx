@@ -14,7 +14,7 @@ const phoneticMap: Record<string, string> = {
   ALFA: 'A', ALPHA: 'A', BRAVO: 'B', CHARLIE: 'C', DELTA: 'D', ECHO: 'E', FOXTROT: 'F',
   GOLF: 'G', HOTEL: 'H', INDIA: 'I', JULIETT: 'J', JULIET: 'J', KILO: 'K', LIMA: 'L',
   MIKE: 'M', NOVEMBER: 'N', OSCAR: 'O', PAPA: 'P', QUEBEC: 'Q', ROMEO: 'R', SIERRA: 'S',
-  TANGO: 'T', UNIFORM: 'U', VICTOR: 'V', WHISKEY: 'W', XRAY: 'X', X-RAY: 'X', XRAY: 'X',
+  TANGO: 'T', UNIFORM: 'U', VICTOR: 'V', WHISKEY: 'W', XRAY: 'X', 'X-RAY': 'X',
   YANKEE: 'Y', ZULU: 'Z',
 };
 
@@ -45,13 +45,12 @@ const normalizeSearchToIcao = (input: string): string | null => {
       letters.push(mapped);
       continue;
     }
-    // maybe user typed a run-together like "SIERRABRAVO" - attempt to split by known phonetic prefixes (best-effort)
     // fallback: if token length is 3 or 4 and alphabetic, treat as letters
     if (/^[A-Z]{3,4}$/.test(tok)) {
       letters.push(...tok.split(''));
       continue;
     }
-    // unknown token -> give up on it (skip)
+    // unknown token -> skip
   }
 
   if (letters.length >= 3 && letters.length <= 4) {
@@ -75,11 +74,10 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
     e.preventDefault();
     const result = normalizeSearchToIcao(searchQuery);
     if (result) {
-      // navigate to airport page (adjust route as needed)
       navigate(`/airport/${result}`);
       setSearchQuery('');
     } else {
-      // Se desejar, trocar por feedback visual em vez de alert
+      // Troque por um feedback visual melhor se preferir
       // eslint-disable-next-line no-alert
       alert('Código não reconhecido. Digite ex: SBSP ou SIERRA BRAVO SIERRA PAPA');
     }
