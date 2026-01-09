@@ -38,7 +38,8 @@ const phoneticMap: Record<string, string> = {
   UNIFORM: 'U',
   VICTOR: 'V',
   WHISKEY: 'W',
-  XRAY: 'X', X-RAY: 'X', (XRAY.replace('-', '')): 'X',
+  XRAY: 'X',
+  'X-RAY': 'X',
   YANKEE: 'Y',
   ZULU: 'Z',
 };
@@ -85,12 +86,6 @@ const normalizeSearchToIcao = (input: string): string | null => {
     // fallback: token com 3-4 letras (talvez o usuário digitou "SBSP" sem espaços)
     if (/^[A-Z]{3,4}$/.test(tok)) {
       letters.push(...tok.split(''));
-      continue;
-    }
-
-    // Tentativa adicional: se token contém 'XRAY' escrito com hífen removido
-    if (tok === 'XRAY') {
-      letters.push('X');
       continue;
     }
 
@@ -171,10 +166,8 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
         }
       };
 
-      r.onerror = (_ev: any) => {
-        // Em caso de erro, simplesmente para e indica que não está ouvindo
+      r.onerror = () => {
         setIsListening(false);
-        // console.warn('Speech recognition error', ev);
       };
 
       r.onend = () => {
@@ -185,9 +178,8 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
     try {
       recognitionRef.current.start();
       setIsListening(true);
-    } catch (err) {
+    } catch {
       // start pode lançar se já estiver ouvindo; ignora
-      // console.warn('recognition start error', err);
     }
   };
 
