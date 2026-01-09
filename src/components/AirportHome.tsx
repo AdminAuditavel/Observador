@@ -10,13 +10,79 @@ interface AirportHomeProps {
   onOpenWeather: () => void;
 }
 
+const phoneticMap: Record<string, string> = {
+  ALFA: 'A', ALPHA: 'A', BRAVO: 'B', CHARLIE: 'C', DELTA: 'D', ECHO: 'E', FOXTROT: 'F',
+  GOLF: 'G', HOTEL: 'H', INDIA: 'I', JULIETT: 'J', JULIET: 'J', KILO: 'K', LIMA: 'L',
+  MIKE: 'M', NOVEMBER: 'N', OSCAR: 'O', PAPA: 'P', QUEBEC: 'Q', ROMEO: 'R', SIERRA: 'S',
+  TANGO: 'T', UNIFORM: 'U', VICTOR: 'V', WHISKEY: 'W', XRAY: 'X', X-RAY: 'X', XRAY: 'X',
+  YANKEE: 'Y', ZULU: 'Z',
+};
+
+const normalizeSearchToIcao = (input: string): string | null => {
+  if (!input) return null;
+  const cleaned = input.trim().toUpperCase();
+
+  // If already looks like a 3/4-letter code (letters only), return it
+  const onlyLetters = cleaned.replace(/[^A-Z]/g, '');
+  if (onlyLetters.length >= 3 && onlyLetters.length <= 4 && /^[A-Z]{3,4}$/.test(onlyLetters)) {
+    return onlyLetters;
+  }
+
+  // Try to parse as phonetic words or letters separated by spaces/commas
+  const tokens = cleaned.split(/[\s,.-]+/).map(t => t.replace(/[^A-Z]/g, ''));
+  const letters: string[] = [];
+
+  for (const tok of tokens) {
+    if (!tok) continue;
+    // single-letter token (e.g., "S" "B")
+    if (tok.length === 1 && /^[A-Z]$/.test(tok)) {
+      letters.push(tok);
+      continue;
+    }
+    // full phonetic word
+    const mapped = phoneticMap[tok];
+    if (mapped) {
+      letters.push(mapped);
+      continue;
+    }
+    // maybe user typed a run-together like "SIERRABRAVO" - attempt to split by known phonetic prefixes (best-effort)
+    // fallback: if token length is 3 or 4 and alphabetic, treat as letters
+    if (/^[A-Z]{3,4}$/.test(tok)) {
+      letters.push(...tok.split(''));
+      continue;
+    }
+    // unknown token -> give up on it (skip)
+  }
+
+  if (letters.length >= 3 && letters.length <= 4) {
+    return letters.slice(0, 4).join('');
+  }
+
+  return null;
+};
+
 const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<VisualPost[]>(POSTS_SBSP);
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleAddPost = (newPost: VisualPost) => {
     setPosts([newPost, ...posts]);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = normalizeSearchToIcao(searchQuery);
+    if (result) {
+      // navigate to airport page (adjust route as needed)
+      navigate(`/airport/${result}`);
+      setSearchQuery('');
+    } else {
+      // Se desejar, trocar por feedback visual em vez de alert
+      // eslint-disable-next-line no-alert
+      alert('Código não reconhecido. Digite ex: SBSP ou SIERRA BRAVO SIERRA PAPA');
+    }
   };
 
   return (
@@ -46,6 +112,24 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white border border-white/10 uppercase">
                   {AIRPORT_SBSP.icao} / {AIRPORT_SBSP.iata}
                 </span>
+
+                {/* Inline search form (same line do ICAO/IATA) */}
+                <form onSubmit={handleSearchSubmit} className="ml-2 flex items-center gap-2">
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar (ex: SBSP ou SIERRA BRAVO INDIA HOTEL)"
+                    aria-label="Buscar aeroporto por código ou alfabeto fonético"
+                    className="text-xs bg-white/5 placeholder-gray-400 text-white px-3 py-1.5 rounded-md border border-white/5 focus:outline-none focus:ring-1 focus:ring-primary w-[260px] transition-all"
+                  />
+                  <button
+                    type="submit"
+                    className="h-8 px-2 rounded-md bg-primary text-white text-sm font-medium hover:bg-blue-600 active:scale-95 transition-all"
+                  >
+                    Ir
+                  </button>
+                </form>
+
                 <span className="text-xs font-medium text-gray-300">• {AIRPORT_SBSP.distance}</span>
                 <span className="text-xs font-medium text-gray-300 ml-auto flex items-center gap-1">
                   <span className="material-symbols-outlined text-[14px]">update</span> {AIRPORT_SBSP.lastUpdate}
