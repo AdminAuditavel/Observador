@@ -16,7 +16,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const [posts, setPosts] = useState<VisualPost[]>(POSTS_SBSP);
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
 
-  // Novo estado para controlar modal de foto do colaborador
+  // Estado para controlar modal de foto do autor
   const [photoUrlOpen, setPhotoUrlOpen] = useState<string | null>(null);
 
   const handleAddPost = (newPost: VisualPost) => {
@@ -24,7 +24,10 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   };
 
   const openAuthorPhoto = (e: React.MouseEvent | React.KeyboardEvent, url: string) => {
-    e.stopPropagation();
+    // Garantir que o clique/tecla não suba e dispare navegação do article
+    if ('stopPropagation' in e && typeof e.stopPropagation === 'function') {
+      e.stopPropagation();
+    }
     setPhotoUrlOpen(url);
   };
 
@@ -32,13 +35,13 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
     <div className="flex flex-col pb-20">
       {/* Header with Background */}
       <header className="relative w-full h-[320px] shrink-0">
-        <div 
-          className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-700" 
+        <div
+          className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-700"
           style={{ backgroundImage: `url(${AIRPORT_SBSP.bgImage})` }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-[#111722]"></div>
         </div>
-        
+
         <div className="relative z-10 flex flex-col h-full justify-between p-4 pb-6">
           <div className="flex items-center justify-between">
             <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10">
@@ -74,9 +77,8 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
 
       {/* Main Content Area */}
       <main className="flex flex-col gap-6 -mt-4 relative z-10 px-4">
-        
         {/* Official Summary Card */}
-        <section 
+        <section
           onClick={onOpenWeather}
           className="bg-surface-dark rounded-xl border border-white/5 shadow-xl overflow-hidden cursor-pointer hover:bg-surface-dark-lighter transition-colors"
         >
@@ -93,7 +95,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
               <span className="text-xs font-medium text-green-400">{AIRPORT_SBSP.status}</span>
             </div>
           </div>
-          
+
           <div className="p-4 flex flex-col gap-4">
             <div className="bg-[#111722] p-3 rounded-lg border-l-4 border-green-500 font-mono text-xs leading-relaxed text-gray-300">
               {AIRPORT_SBSP.metar}
@@ -109,7 +111,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
             <div className="flex flex-col gap-2">
               <span className="text-xs font-semibold text-gray-400 uppercase">NOTAMs Críticos</span>
               <div className="flex flex-wrap gap-2">
-                <div 
+                <div
                   onClick={(e) => { e.stopPropagation(); navigate('/notam/n1'); }}
                   className="flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 pl-2 pr-3 py-1 cursor-pointer hover:bg-yellow-500/20"
                 >
@@ -148,24 +150,32 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
               <h3 className="text-white text-base font-bold">Feed Visual</h3>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase">Colaborativo</span>
             </div>
-            <button 
+            <button
               onClick={() => setIsNewPostModalOpen(true)}
               className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-white shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+              aria-label="Novo post"
             >
               <span className="material-symbols-outlined text-[24px]">add_a_photo</span>
             </button>
           </div>
 
           {posts.map(post => (
-            <article 
-              key={post.id} 
-              onClick={() => navigate(`/post/${post.id}`)}
+            <article
+              key={post.id}
+              onClick={(e) => {
+                const target = e.target as HTMLElement | null;
+                // Se o clique veio de avatar (ou elemento marcado) ou botão, não navegue
+                if (target && (target.closest('.avatar-click') || target.closest('.no-nav') || target.closest('button'))) {
+                  return;
+                }
+                navigate(`/post/${post.id}`);
+              }}
               className="bg-surface-dark rounded-xl overflow-hidden border border-white/5 shadow-lg active:scale-[0.99] transition-all cursor-pointer group"
             >
               <div className="relative h-48 w-full bg-gray-800 overflow-hidden">
-                <img 
-                  src={post.imageUrl} 
-                  alt={post.content} 
+                <img
+                  src={post.imageUrl}
+                  alt={post.content}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&q=80&w=800';
@@ -188,22 +198,24 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                   <p className="text-white font-medium text-sm leading-tight line-clamp-2 drop-shadow-md">{post.content}</p>
                 </div>
               </div>
+
               <div className="p-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {/* Avatar com clique independente do artigo (stopPropagation) */}
-                  <img 
-                    src={post.authorAvatar} 
-                    alt={post.author} 
-                    className="h-8 w-8 rounded-full object-cover border-2 border-surface-dark-lighter cursor-pointer"
+                  {/* Avatar com classe identificadora 'avatar-click' */}
+                  <img
+                    src={post.authorAvatar}
+                    alt={post.author}
+                    className="h-8 w-8 rounded-full object-cover border-2 border-surface-dark-lighter cursor-pointer avatar-click"
                     onClick={(e) => openAuthorPhoto(e, post.authorAvatar)}
                     onKeyDown={(e) => {
                       // Acessibilidade: abrir com Enter/Space
-                      if ((e as React.KeyboardEvent).key === 'Enter' || (e as React.KeyboardEvent).key === ' ') {
+                      if (e.key === 'Enter' || e.key === ' ') {
                         openAuthorPhoto(e, post.authorAvatar);
                       }
                     }}
                     tabIndex={0}
                     role="button"
+                    aria-label={`Abrir foto de ${post.author}`}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200';
                     }}
@@ -213,12 +225,13 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                     <span className="text-[10px] text-gray-400">{post.authorRole}</span>
                   </div>
                 </div>
+
                 <div className="flex items-center gap-3">
-                  <button className="flex items-center gap-1 text-gray-400 hover:text-primary transition-colors">
+                  <button className="flex items-center gap-1 text-gray-400 hover:text-primary transition-colors no-nav" aria-label="Curtir">
                     <span className="material-symbols-outlined text-[18px]">thumb_up</span>
                     <span className="text-xs font-medium">{post.likes}</span>
                   </button>
-                  <button className="text-gray-400">
+                  <button className="text-gray-400 no-nav" aria-label="Denunciar">
                     <span className="material-symbols-outlined text-[18px]">flag</span>
                   </button>
                 </div>
@@ -229,9 +242,9 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
       </main>
 
       {isNewPostModalOpen && (
-        <NewPostModal 
-          onClose={() => setIsNewPostModalOpen(false)} 
-          onAdd={handleAddPost} 
+        <NewPostModal
+          onClose={() => setIsNewPostModalOpen(false)}
+          onAdd={handleAddPost}
         />
       )}
 
