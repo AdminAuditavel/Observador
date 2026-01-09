@@ -1,5 +1,6 @@
 //src/services/mockData.ts
 
+
 import { Airport, Notam, VisualPost, TimelineItem } from '../types';
 
 export const AIRPORT_SBSP: Airport = {
@@ -9,8 +10,7 @@ export const AIRPORT_SBSP: Airport = {
   name: 'Aeroporto de Congonhas',
   distance: '12nm NE',
   lastUpdate: '2m',
-  // imagem estável (sem redirect complexo)
-  bgImage: 'https://picsum.photos/seed/sbsp-airport/1200/800',
+  bgImage: 'https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&q=80&w=1200',
   metar: 'METAR SBSP 151400Z 14008KT 9999 SCT030 24/16 Q1018',
   status: 'VFR',
   stats: {
@@ -35,8 +35,7 @@ export const POSTS_SBSP: VisualPost[] = [
     authorRole: 'Embraer E195',
     authorAvatar: 'https://i.pravatar.cc/150?u=silva',
     content: 'Final 17R. Chuva moderada no setor leste. Visibilidade reduzida na curta final.',
-    // imagem estável (seed fixa) — não some
-    imageUrl: 'https://picsum.photos/seed/sbsp-post-1/1200/1600',
+    imageUrl: 'https://images.unsplash.com/photo-1506012733851-bb0755ec04a0?auto=format&fit=crop&q=80&w=800',
     timestamp: '10 min',
     likes: 12,
     confidence: 'Alta Confiança',
@@ -49,7 +48,7 @@ export const POSTS_SBSP: VisualPost[] = [
     authorRole: 'Ground Ops',
     authorAvatar: 'https://i.pravatar.cc/150?u=joao',
     content: 'Pátio geral molhado, mas sem acúmulo de água. Operações normais.',
-    imageUrl: 'https://picsum.photos/seed/sbsp-post-2/1200/1600',
+    imageUrl: 'https://images.unsplash.com/photo-1569154941061-e231b4725ef1?auto=format&fit=crop&q=80&w=800',
     timestamp: '25 min',
     likes: 4,
     confidence: 'Alta Confiança'
@@ -63,11 +62,10 @@ export const NOTAMS_SBSP: Notam[] = [
     severity: 'critical',
     title: 'CRÍTICO • PISTA FECHADA',
     description: 'A Pista 11L/29R estará fechada devido a manutenção programada. Todos os pilotos devem planejar aproximações para a pista paralela 11R/29L.',
-    fullText:
-      'A0421/24 NOTAMN\nQ) SBSP/QMRLC/IV/NBO/A/000/999\nA) SBSP B) 2410241000 C) 2410251400\nE) RWY 11L/29R CLSD DUE TO MAINT\nCREATED: 23 OCT 18:45 2024\nSOURCE: SBSPYNYX',
-    airport: 'SBSP - Congonhas',
+    fullText: 'A0421/24 NOTAMN\nQ) SBBS/QMRLC/IV/NBO/A/000/999\nA) SBBR B) 2410241000 C) 2410251400\nE) RWY 11L/29R CLSD DUE TO MAINT\nCREATED: 23 OCT 18:45 2024\nSOURCE: SBBRYNYX',
+    airport: 'SBBR - Brasília Intl',
     startUtc: '24 OUT 10:00',
     endUtc: '25 OUT 14:00',
-    mapImage: 'https://picsum.photos/seed/sbsp-notam/1200/800'
+    mapImage: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?auto=format&fit=crop&q=80&w=800'
   }
 ];
