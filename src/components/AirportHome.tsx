@@ -24,7 +24,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   };
 
   const openAuthorPhoto = (e: React.MouseEvent | React.KeyboardEvent, url: string) => {
-    // Garantir que o clique/tecla não suba e dispare navegação do article
+    // stopPropagation no estágio de captura (veja onClickCapture no img) previne navegação do article
     if ('stopPropagation' in e && typeof e.stopPropagation === 'function') {
       e.stopPropagation();
     }
@@ -164,8 +164,8 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
               key={post.id}
               onClick={(e) => {
                 const target = e.target as HTMLElement | null;
-                // Se o clique veio de avatar (ou elemento marcado) ou botão, não navegue
-                if (target && (target.closest('.avatar-click') || target.closest('.no-nav') || target.closest('button'))) {
+                // Se clique veio de elemento marcado com data-no-nav, não navegar
+                if (target && target.closest('[data-no-nav]')) {
                   return;
                 }
                 navigate(`/post/${post.id}`);
@@ -201,15 +201,23 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
 
               <div className="p-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {/* Avatar com classe identificadora 'avatar-click' */}
+                  {/* Avatar com data-no-nav e onClickCapture para impedir navegação */}
                   <img
                     src={post.authorAvatar}
                     alt={post.author}
+                    // marca para o handler do article identificar e não navegar
+                    data-no-nav="true"
                     className="h-8 w-8 rounded-full object-cover border-2 border-surface-dark-lighter cursor-pointer avatar-click"
-                    onClick={(e) => openAuthorPhoto(e, post.authorAvatar)}
+                    // onClickCapture garante stopPropagation antes do bubble do article
+                    onClickCapture={(e) => {
+                      // interrompe navegação imediatamente (estágio de captura)
+                      e.stopPropagation();
+                      openAuthorPhoto(e, post.authorAvatar);
+                    }}
                     onKeyDown={(e) => {
-                      // Acessibilidade: abrir com Enter/Space
                       if (e.key === 'Enter' || e.key === ' ') {
+                        // sempre bloquear propagação de teclado também
+                        (e as React.KeyboardEvent).stopPropagation();
                         openAuthorPhoto(e, post.authorAvatar);
                       }
                     }}
