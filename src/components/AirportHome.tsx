@@ -44,55 +44,45 @@ const phoneticMap: Record<string, string> = {
   ZULU: 'Z',
 };
 
-/**
- * Normaliza a entrada do usuário tentando extrair um código ICAO (3-4 letras).
- * Suporta:
- * - códigos diretos: "SBSP", "sbsp", "S B S P"
- * - alfabeto fonético: "SIERRA BRAVO SIERRA PAPA", "Sierra Bravo Sierra Papa"
- * - letras isoladas: "S B S P"
- * Retorna o ICAO (uppercase) ou null se não for possível extrair.
- */
 const normalizeSearchToIcao = (input: string): string | null => {
   if (!input) return null;
   const cleaned = input.trim().toUpperCase();
 
-  // Se já parece um código (apenas letras, 3 ou 4)
+  // If input already looks like a code (letters only, 3-4)
   const onlyLetters = cleaned.replace(/[^A-Z]/g, '');
   if (onlyLetters.length >= 3 && onlyLetters.length <= 4 && /^[A-Z]{3,4}$/.test(onlyLetters)) {
     return onlyLetters;
   }
 
-  // Tokens: separa por espaços, vírgulas, hífens, pontos
+  // Tokens: split by spaces, commas, hyphens, dots
   const tokens = cleaned.split(/[\s,.-]+/).map(t => t.replace(/[^A-Z]/g, '')).filter(Boolean);
   const letters: string[] = [];
 
-  for (let i = 0; i < tokens.length; i++) {
-    const tok = tokens[i];
+  for (const tok of tokens) {
     if (!tok) continue;
 
-    // token único como letra: "S" "B"
+    // single-letter token "S" or "B"
     if (tok.length === 1 && /^[A-Z]$/.test(tok)) {
       letters.push(tok);
       continue;
     }
 
-    // token completo do alfabeto fonético
+    // full phonetic word
     const mapped = phoneticMap[tok];
     if (mapped) {
       letters.push(mapped);
       continue;
     }
 
-    // fallback: token com 3-4 letras (talvez o usuário digitou "SBSP" sem espaços)
+    // fallback: token with 3-4 letters (maybe input like "SBSP" without spaces)
     if (/^[A-Z]{3,4}$/.test(tok)) {
       letters.push(...tok.split(''));
       continue;
     }
 
-    // Ignora tokens desconhecidos
+    // ignore unknown tokens
   }
 
-  // Se conseguimos extrair 3 ou 4 letras, retorna o ICAO
   if (letters.length >= 3 && letters.length <= 4) {
     return letters.slice(0, 4).join('');
   }
@@ -119,13 +109,13 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
       navigate(`/airport/${result}`);
       setSearchQuery('');
     } else {
-      // Ajuste: trocar por um feedback visual se preferir
+      // replace with a nicer UI feedback if desired
       // eslint-disable-next-line no-alert
       alert('Código não reconhecido. Digite ex: SBSP ou fale "Sierra Bravo Sierra Papa".');
     }
   };
 
-  // Inicia reconhecimento de voz (Web Speech API). Ao obter resultado, coloca no campo e tenta navegar automaticamente.
+  // Voice recognition using Web Speech API
   const startListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -134,13 +124,11 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
       return;
     }
 
-    // Se já existe uma instância, apenas (re)usa
     if (!recognitionRef.current) {
       const r = new SpeechRecognition();
       recognitionRef.current = r;
 
-      // Ajuste de idioma: NATO é inglês, mas muitos usuários falarão em pt-BR (palavras como "SIERRA" são as mesmas).
-      // Usar 'en-US' geralmente funciona melhor para palavras do alfabeto fonético; se preferir, mude para 'pt-BR'.
+      // NATO words are in English; 'en-US' usually recognizes them better. Change to 'pt-BR' if preferred.
       r.lang = 'en-US';
       r.interimResults = false;
       r.maxAlternatives = 1;
@@ -153,16 +141,13 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
           .map((res: any) => res[0].transcript)
           .join(' ')
           .trim();
-        // Coloca transcrito no campo
         setSearchQuery(transcript);
-        // Tenta normalizar e navegar automaticamente
         const normalized = normalizeSearchToIcao(transcript);
         if (normalized) {
           navigate(`/airport/${normalized}`);
           setSearchQuery('');
         } else {
-          // se não conseguiu normalizar, deixa o texto no input para edição
-          // opcional: mostrar sugestão/erro visual
+          // leave transcript in input for editing
         }
       };
 
@@ -179,7 +164,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
       recognitionRef.current.start();
       setIsListening(true);
     } catch {
-      // start pode lançar se já estiver ouvindo; ignora
+      // ignore start errors (already listening)
     }
   };
 
@@ -194,7 +179,6 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
     setIsListening(false);
   };
 
-  // interrompe reconhecimento ao desmontar
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
@@ -233,50 +217,53 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
 
           <div className="flex flex-col gap-3">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white border border-white/10 uppercase">
-                  {AIRPORT_SBSP.icao} / {AIRPORT_SBSP.iata}
-                </span>
-
-                {/* Inline search form (same line do ICAO/IATA) */}
-                <form onSubmit={handleSearchSubmit} className="ml-2 flex items-center gap-2">
+              {/* NEW: search moved one line above to avoid crowding on mobile */}
+              <div className="mb-2">
+                <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full">
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="digite SBIH ou fale Sierra Bravo ..."
+                    placeholder="Buscar (ex: SBSP ou fale: Sierra Bravo Sierra Papa)"
                     aria-label="Buscar aeroporto por código ou alfabeto fonético"
-                    className="text-xs bg-white/5 placeholder-gray-400 text-white px-3 py-1.5 rounded-md border border-white/5 focus:outline-none focus:ring-1 focus:ring-primary w-[260px] transition-all"
+                    className="text-xs bg-white/5 placeholder-gray-400 text-white px-3 py-2 rounded-md border border-white/5 focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-[320px] transition-all"
                   />
                   <button
                     type="submit"
-                    className="h-8 px-2 rounded-md bg-primary text-white text-sm font-medium hover:bg-blue-600 active:scale-95 transition-all"
+                    className="h-9 px-3 rounded-md bg-primary text-white text-sm font-medium hover:bg-blue-600 active:scale-95 transition-all"
                   >
                     Ir
                   </button>
 
-                  {/* Botão de microfone para reconhecimento de voz */}
                   <button
                     type="button"
                     aria-pressed={isListening}
                     onClick={() => (isListening ? stopListening() : startListening())}
                     title={isListening ? 'Parar escuta' : 'Falar (alfabeto fonético)'}
-                    className={`flex items-center justify-center h-8 w-8 rounded-md border ${isListening ? 'bg-red-600 border-red-700' : 'bg-white/5 border-white/10'} text-white transition-all`}
+                    className={`flex items-center justify-center h-9 w-9 rounded-md border ${isListening ? 'bg-red-600 border-red-700' : 'bg-white/5 border-white/10'} text-white transition-all`}
                   >
                     <span className="material-symbols-outlined text-[18px]">
                       {isListening ? 'mic' : 'mic_none'}
                     </span>
                   </button>
                 </form>
+              </div>
+
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white border border-white/10 uppercase">
+                  {AIRPORT_SBSP.icao} / {AIRPORT_SBSP.iata}
+                </span>
 
                 <span className="text-xs font-medium text-gray-300">• {AIRPORT_SBSP.distance}</span>
                 <span className="text-xs font-medium text-gray-300 ml-auto flex items-center gap-1">
                   <span className="material-symbols-outlined text-[14px]">update</span> {AIRPORT_SBSP.lastUpdate}
                 </span>
               </div>
+
               <h1 className="text-white text-3xl font-bold leading-tight tracking-tight drop-shadow-lg">
                 {AIRPORT_SBSP.name}
               </h1>
             </div>
+
             <button className="flex w-full items-center justify-center h-11 bg-primary hover:bg-blue-600 active:bg-blue-700 transition-colors rounded-lg text-white gap-2 px-4 text-sm font-bold shadow-lg shadow-blue-900/20">
               <span className="material-symbols-outlined text-[20px]">map</span>
               <span>Ver mapa / rota</span>
