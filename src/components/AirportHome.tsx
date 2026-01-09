@@ -81,7 +81,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
           className="bg-surface-dark rounded-xl border border-white/5 shadow-xl overflow-hidden cursor-pointer hover:bg-surface-dark-lighter transition-colors"
         >
           <div className="flex items-center justify-between p-4 border-b border-white/5 bg-surface-dark-lighter/30">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 no-nav">
               <h2 className="text-white text-lg font-bold">Resumo Oficial</h2>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase">Oficial</span>
             </div>
@@ -144,7 +144,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
         {/* Visual Feed */}
         <section className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 no-nav">
               <h3 className="text-white text-base font-bold">Feed Visual</h3>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase">Colaborativo</span>
             </div>
@@ -175,24 +175,25 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
 
                 {/* Botão overlay (invisível) que cuida da navegação */}
                 <button
-                  onClick={() => navigate(`/post/${post.id}`)}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest('.no-nav')) return; // não navega quando clica em avatar/botões
+                    navigate(`/post/${post.id}`);
+                  }}
                   aria-label={`Abrir post ${post.id}`}
                   className="absolute inset-0 z-0 bg-transparent focus:outline-none"
+                  type="button"
                 />
 
                 {/* Conteúdo inferior (avatar e controles) com z-index acima do overlay */}
                 <div className="absolute bottom-0 left-0 w-full p-4 z-10 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 no-nav">
                     {/* Avatar: z-index maior e intercepta cliques */}
                     <img
                       src={post.authorAvatar}
                       alt={post.author}
                       className="h-8 w-8 rounded-full object-cover border-2 border-surface-dark-lighter cursor-pointer z-20"
-                      onClickCapture={(e) => {
-                        // onClickCapture garante interceptação no estágio de captura
-                        e.stopPropagation();
-                        openAuthorPhoto(e, post.authorAvatar);
-                      }}
+                      onClick={(e) => openAuthorPhoto(e, post.authorAvatar)}
                       onKeyDown={(e) => {
                         if ((e as React.KeyboardEvent).key === 'Enter' || (e as React.KeyboardEvent).key === ' ') {
                           (e as React.KeyboardEvent).stopPropagation();
@@ -212,7 +213,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 z-20">
+                  <div className="flex items-center gap-3 z-20 no-nav">
                     <button
                       className="flex items-center gap-1 text-gray-400 hover:text-primary transition-colors no-nav"
                       aria-label="Curtir"
