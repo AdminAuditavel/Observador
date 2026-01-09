@@ -33,7 +33,7 @@ export const POSTS_SBSP: VisualPost[] = [
     id: 'p1',
     author: 'Cmdt. Silva',
     authorRole: 'Embraer E195',
-    authorAvatar: 'https://i.pravatar.cc/150?u=silva',
+    authorAvatar: "https://i.pravatar.cc/150?u=capt-silva"
     content: 'Final 17R. Chuva moderada no setor leste. Visibilidade reduzida na curta final.',
     imageUrl: 'https://images.unsplash.com/photo-1506012733851-bb0755ec04a0?auto=format&fit=crop&q=80&w=800',
     timestamp: '10 min',
