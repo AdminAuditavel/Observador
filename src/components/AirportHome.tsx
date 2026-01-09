@@ -38,7 +38,7 @@ const phoneticMap: Record<string, string> = {
   UNIFORM: 'U',
   VICTOR: 'V',
   WHISKEY: 'W',
-  XRAY: 'X', 'X-RAY': 'X', XRAY.replace('-', ''): 'X',
+  XRAY: 'X', X-RAY: 'X', XRAY.replace('-', ''): 'X',
   YANKEE: 'Y',
   ZULU: 'Z',
 };
