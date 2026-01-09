@@ -5,6 +5,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { ensureProfile } from "@/lib/ensureProfile";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,6 +36,12 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
       }
+      
+      /**
+       * PASSO CRÍTICO:
+       * garante que public.profiles exista para este usuário
+       */
+      await ensureProfile();
 
       router.replace(next);
     } catch (e: any) {
