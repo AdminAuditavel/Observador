@@ -1,11 +1,11 @@
 //src/components/AirportHome.tsx
 
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AIRPORT_SBSP, TIMELINE_SBSP, POSTS_SBSP } from '../services/mockData';
 import { VisualPost } from '../types';
 import NewPostModal from './NewPostModal';
+import PhotoModal from './PhotoModal';
 
 interface AirportHomeProps {
   onOpenWeather: () => void;
@@ -16,8 +16,16 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const [posts, setPosts] = useState<VisualPost[]>(POSTS_SBSP);
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
 
+  // Novo estado para controlar modal de foto do colaborador
+  const [photoUrlOpen, setPhotoUrlOpen] = useState<string | null>(null);
+
   const handleAddPost = (newPost: VisualPost) => {
     setPosts([newPost, ...posts]);
+  };
+
+  const openAuthorPhoto = (e: React.MouseEvent | React.KeyboardEvent, url: string) => {
+    e.stopPropagation();
+    setPhotoUrlOpen(url);
   };
 
   return (
@@ -182,7 +190,24 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
               </div>
               <div className="p-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <img src={post.authorAvatar} alt={post.author} className="h-8 w-8 rounded-full object-cover border-2 border-surface-dark-lighter" />
+                  {/* Avatar com clique independente do artigo (stopPropagation) */}
+                  <img 
+                    src={post.authorAvatar} 
+                    alt={post.author} 
+                    className="h-8 w-8 rounded-full object-cover border-2 border-surface-dark-lighter cursor-pointer"
+                    onClick={(e) => openAuthorPhoto(e, post.authorAvatar)}
+                    onKeyDown={(e) => {
+                      // Acessibilidade: abrir com Enter/Space
+                      if ((e as React.KeyboardEvent).key === 'Enter' || (e as React.KeyboardEvent).key === ' ') {
+                        openAuthorPhoto(e, post.authorAvatar);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200';
+                    }}
+                  />
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-white">{post.author}</span>
                     <span className="text-[10px] text-gray-400">{post.authorRole}</span>
@@ -208,6 +233,11 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
           onClose={() => setIsNewPostModalOpen(false)} 
           onAdd={handleAddPost} 
         />
+      )}
+
+      {/* Modal de foto */}
+      {photoUrlOpen && (
+        <PhotoModal photoUrl={photoUrlOpen} onClose={() => setPhotoUrlOpen(null)} />
       )}
 
       {/* Footer Disclaimer */}
