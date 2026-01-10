@@ -1,4 +1,4 @@
-//src/pages/Signup.tsx
+// src/pages/Signup.tsx
 
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -10,10 +10,6 @@ import { useAuth } from "../auth/AuthContext";
  * - Prefills invite from ?invite=TOKEN when present
  * - Validates invite via RPC 'validate_invite' if available, otherwise reads invites table
  * - On successful signup tries to consume invite via RPC 'consume_invite_for_user'
- *
- * NOTES:
- * - Backend-side RPC/functions are recommended for secure consumption (see suggestions in chat).
- * - Adapt RPC names if you used different names.
  */
 
 function getNextFromQuery(search: string) {
@@ -41,9 +37,7 @@ export default function Signup() {
   const initialInvite = useMemo(() => (sp.get("invite") ?? "").trim(), [sp]);
 
   const [inviteCode, setInviteCode] = useState<string>(initialInvite);
-  const [inviteStatus, setInviteStatus] = useState<
-    "idle" | "validating" | "valid" | "invalid"
-  >(initialInvite ? "validating" : "idle");
+  const [inviteStatus, setInviteStatus] = useState<"idle" | "validating" | "valid" | "invalid">(initialInvite ? "validating" : "idle"));
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
 
   // redirect if already logged
