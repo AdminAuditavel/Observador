@@ -1,7 +1,5 @@
 //src/components/AirportHome.tsx
 
-// src/components/AirportHome.tsx
-
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AIRPORT_SBSP, TIMELINE_SBSP } from "../services/mockData";
