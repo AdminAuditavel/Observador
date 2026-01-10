@@ -1,5 +1,7 @@
 // src/pages/Signup.tsx
 
+// src/pages/Signup.tsx
+
 import React, { FormEvent, useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
@@ -25,9 +27,15 @@ export default function Signup() {
   const [contactPhone, setContactPhone] = useState("");
   const [organization, setOrganization] = useState("");
   const [notes, setNotes] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState(""); // public URL (or manual URL)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null); // chosen file (will be uploaded after signup)
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string>("");
+
+  // Avatar upload states
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
 
   // Invite handling
   const sp = useMemo(() => new URLSearchParams(loc.search), [loc.search]);
@@ -53,6 +61,17 @@ export default function Signup() {
   useEffect(() => {
     if (initialInvite) validateInvite(initialInvite);
   }, [initialInvite]);
+
+  // cleanup object URL preview
+  useEffect(() => {
+    if (!avatarFile) {
+      setAvatarPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(avatarFile);
+    setAvatarPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [avatarFile]);
 
   async function validateInvite(token: string) {
     if (!token.trim()) {
@@ -133,6 +152,60 @@ export default function Signup() {
     return `(${digits.slice(0, 2)})${digits.slice(2)}`;
   }
 
+  // When user selects a file, store it in state and show preview. Upload will happen after successful sign up
+  function handleAvatarFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setAvatarFile(null);
+      return;
+    }
+    setAvatarError(null);
+    setAvatarFile(file);
+    // clear manual URL if a file is chosen (optional)
+    // setAvatarUrl("");
+  }
+
+  // Upload avatar file to storage under a path that includes the userId so it's easy to manage
+  async function uploadAvatarForUser(userId: string): Promise<string | null> {
+    if (!avatarFile) return avatarUrl || null; // if no file, return manual URL if present
+
+    setUploadingAvatar(true);
+    setAvatarError(null);
+
+    try {
+      const ext = avatarFile.name.split(".").pop() ?? "png";
+      const fileName = `avatar.${ext}`; // use a consistent name inside the user folder
+      const path = `avatars/${userId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, avatarFile, {
+        cacheControl: "3600",
+        upsert: true, // allow replacing user's avatar
+      });
+
+      if (uploadError) {
+        console.error("avatar upload error", uploadError);
+        setAvatarError("Falha ao enviar avatar. Tente novamente.");
+        return null;
+      }
+
+      const { data: urlData, error: urlError } = supabase.storage.from("avatars").getPublicUrl(path);
+      if (urlError) {
+        console.error("getPublicUrl error", urlError);
+        setAvatarError("Falha ao obter URL do avatar.");
+        return null;
+      }
+
+      const publicUrl = (urlData as any)?.publicUrl ?? (urlData as any)?.public_url ?? "";
+      return publicUrl || null;
+    } catch (err) {
+      console.error("avatar upload exception", err);
+      setAvatarError("Falha ao enviar avatar. Tente novamente.");
+      return null;
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setErr("");
@@ -161,6 +234,13 @@ export default function Signup() {
         }
       }
 
+      // If we managed to create a user and there is an avatar file, upload it under avatars/{userId}/avatar.ext
+      let finalAvatarUrl: string | null = avatarUrl || null;
+      if (userId && avatarFile) {
+        const uploadedUrl = await uploadAvatarForUser(userId);
+        if (uploadedUrl) finalAvatarUrl = uploadedUrl;
+      }
+
       // Upsert profile (if userId available). If consume RPC already set collaborator role server-side
       // you can still upsert to ensure display_name/email present.
       if (userId) {
@@ -169,7 +249,7 @@ export default function Signup() {
           email,
           display_name: displayName || null,
           role: role, // Set role based on invite
-          avatar_url: avatarUrl || null,
+          avatar_url: finalAvatarUrl || null, // ensure this matches your table field name avatar_url
           contact_email: email,
           contact_phone: contactPhone || null,
           organization: organization || null,
@@ -261,35 +341,83 @@ export default function Signup() {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-200" htmlFor="password">
-            Senha
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
-          />
+        {/* Password and Contact Phone on same row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-200" htmlFor="password">
+              Senha
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
+            />
+          </div>
+
+          {/* Contact Phone */}
+          <div>
+            <label className="block text-sm font-medium text-gray-200" htmlFor="contactPhone">
+              Telefone de contato
+            </label>
+            <input
+              id="contactPhone"
+              type="tel"
+              inputMode="tel"
+              value={contactPhone}
+              onChange={(e) => setContactPhone(formatPhoneInput(e.target.value))}
+              placeholder="(93)991010203"
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
+            />
+            <p className="text-xs text-gray-400 mt-1">Formato: (DD)NNNNNNNNN — ex: (93)991010203</p>
+          </div>
         </div>
 
-        {/* Contact Phone */}
+        {/* Avatar field: file upload (will be uploaded after signup) + optional URL preview */}
         <div>
-          <label className="block text-sm font-medium text-gray-200" htmlFor="contactPhone">
-            Telefone de contato
+          <label className="block text-sm font-medium text-gray-200" htmlFor="avatar">
+            Avatar (imagem)
           </label>
-          <input
-            id="contactPhone"
-            type="tel"
-            inputMode="tel"
-            value={contactPhone}
-            onChange={(e) => setContactPhone(formatPhoneInput(e.target.value))}
-            placeholder="(93)991010203"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
-          />
-          <p className="text-xs text-gray-400 mt-1">Formato: (DD)NNNNNNNNN — ex: (93)991010203</p>
+
+          <div className="flex items-center space-x-4 mt-1">
+            <div className="flex-1">
+              <input
+                id="avatarFile"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarFileChange}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-500 file:text-white"
+              />
+              <input
+                id="avatarUrl"
+                type="text"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="Ou cole uma URL pública do avatar"
+                className="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
+              />
+              {avatarError && <p className="text-red-500 text-sm mt-1">{avatarError}</p>}
+              {uploadingAvatar && <p className="text-sm text-gray-500 mt-1">Enviando avatar...</p>}
+            </div>
+
+            {avatarPreviewUrl || avatarUrl ? (
+              <div className="w-20 h-20 rounded overflow-hidden border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={avatarPreviewUrl || avatarUrl}
+                  alt="Avatar preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded bg-gray-100 flex items-center justify-center text-xs text-gray-400 border">
+                Sem avatar
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">Você pode enviar uma imagem (será enviada após o cadastro) ou colar uma URL pública.</p>
         </div>
 
         {/* Organization */}
