@@ -1,7 +1,5 @@
 // src/pages/Signup.tsx
 
-// src/pages/Signup.tsx
-
 import React, { FormEvent, useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
