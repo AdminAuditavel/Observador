@@ -16,28 +16,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // helper to fetch profile and merge into auth user object
+  async function fetchAndMergeProfile(authUser: any) {
+    if (!authUser?.id) return { ...authUser };
+
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, display_name, role, avatar_url, contact_email, contact_phone, organization, notes")
+        .eq("id", authUser.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.warn("profile fetch error", profileError);
+        return { ...authUser };
+      }
+
+      return {
+        ...authUser,
+        profile: profileData ?? null,
+        role: profileData?.role,
+        avatar_url: profileData?.avatar_url,
+      };
+    } catch (err) {
+      console.error("fetchAndMergeProfile error", err);
+      return { ...authUser };
+    }
+  }
+
   useEffect(() => {
     let mounted = true;
+    let subscription: any = null;
 
     async function init() {
       setLoading(true);
 
       try {
-        // 1) Se houver token no fragmento da URL (ex: #access_token=...), finalize a sessão no cliente:
-        // supabase-js v2: getSessionFromUrl(); se você usa v1, adapte conforme SDK.
-        if (typeof window !== "undefined" && window.location.hash.includes("access_token")) {
+        // If auth redirect returned tokens in the URL fragment, let Supabase client parse them.
+        // supabase-js v2 exposes getSessionFromUrl; adapt if your SDK version differs.
+        if (typeof window !== "undefined" && window.location.hash && window.location.hash.includes("access_token")) {
           try {
-            // This will parse the fragment and set the session in the client
+            // parse fragment and set session in client
             await (supabase.auth as any).getSessionFromUrl?.();
-            // Remove fragment to keep URL clean
+            // remove fragment to keep URL clean
             history.replaceState(null, document.title, window.location.pathname + window.location.search);
           } catch (err) {
-            // ignore parse errors
+            // Non-fatal: parsing may fail in some edge cases; continue
             console.warn("getSessionFromUrl error", err);
           }
         }
 
-        // 2) Get current session user (if any)
+        // Get current authenticated user (if any)
         const { data: userData } = await supabase.auth.getUser();
         const authUser = userData?.user ?? null;
 
@@ -48,24 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // 3) Fetch profile row and merge role/avatar etc.
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, display_name, role, avatar_url, contact_email, contact_phone, organization, notes")
-          .eq("id", authUser.id)
-          .single();
-
-        if (profileError) {
-          // If profile missing, still provide authUser
-          console.warn("profile fetch error", profileError);
-          if (!mounted) return;
-          setUser({ ...authUser });
-          setLoading(false);
-          return;
-        }
-
-        // merge profile fields onto auth user object for convenience
-        const merged = { ...authUser, profile: profileData, role: profileData?.role, avatar_url: profileData?.avatar_url };
+        const merged = await fetchAndMergeProfile(authUser);
         if (!mounted) return;
         setUser(merged);
       } catch (err) {
@@ -80,28 +92,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     init();
 
-    // subscribe to auth changes to update user in realtime
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      // session?.user may be null on logout
-      if (session?.user) {
-        // fetch profile and merge as above
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("id, display_name, role, avatar_url, contact_email, contact_phone, organization, notes")
-          .eq("id", session.user.id)
-          .maybeSingle();
-        const merged = { ...session.user, profile: profileData ?? null, role: profileData?.role, avatar_url: profileData?.avatar_url };
-        setUser(merged);
-      } else {
+    // subscribe to auth state changes
+    const sub = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
+        if (session?.user) {
+          const merged = await fetchAndMergeProfile(session.user);
+          setUser(merged);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("onAuthStateChange handler error", err);
         setUser(null);
       }
     });
 
+    // keep subscription ref for cleanup
+    subscription = (sub as any)?.data?.subscription ?? sub;
+
     return () => {
       mounted = false;
-      subscription?.unsubscribe();
+      try {
+        subscription?.unsubscribe?.();
+      } catch {
+        // ignore
+      }
     };
   }, []);
 
