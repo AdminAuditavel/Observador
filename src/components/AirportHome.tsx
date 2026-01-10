@@ -1,6 +1,4 @@
 // src/components/AirportHome.tsx
-
-// src/components/AirportHome.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AIRPORT_SBSP, TIMELINE_SBSP } from "../services/mockData";
@@ -353,15 +351,15 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
           // Se sua policy bloquear, seguimos com fallback.
           console.warn("profiles select blocked or error:", pErr);
         }
-        
+
         // 4.5) contagem de confirmações (1 query)
         const { data: countsRows, error: cErr } = await supabase
           .from("observation_confirmation_counts")
           .select("observation_id, confirms")
           .in("observation_id", obsIds);
-        
+
         if (cErr) console.warn("confirmation counts error:", cErr);
-        
+
         const confirmsByObs = new Map<string, number>();
         (countsRows as any[] | null)?.forEach((r) => {
           confirmsByObs.set(r.observation_id, Number(r.confirms || 0));
@@ -429,6 +427,16 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
       navigate("/", { replace: true });
     }
   }
+
+  // Determine if current user can post (collaborator)
+  const canPost =
+    !!user &&
+    (((user as any).role && (user as any).role === "collaborator") ||
+      ((user as any).profile && (user as any).profile.role === "collaborator"));
+
+  const cameraClass = `flex items-center justify-center h-14 w-14 rounded-full ${
+    canPost ? "bg-gray-800 text-white hover:scale-[0.99] cursor-pointer" : "bg-white/5 text-gray-400 opacity-50 cursor-not-allowed"
+  }`;
 
   return (
     <div className="flex flex-col pb-20">
@@ -673,17 +681,22 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
-                  // Se é colaborador autenticado, abre o modal de criação
-                  if (user && (user as any).role === "collaborator") {
-                    openNewPost();
+                  if (!user) {
+                    navigate(`/login?next=${encodeURIComponent(location.pathname)}`);
                     return;
                   }
-                  // Se não autenticado / não colaborador, direciona ao login
-                  // Após login o usuário voltará para esta página (next)
-                  navigate(`/login?next=${encodeURIComponent(location.pathname)}`);
+                  if (!canPost) {
+                    // usuário autenticado mas sem permissão: aviso simples
+                    // eslint-disable-next-line no-alert
+                    alert("Apenas colaboradores podem criar posts.");
+                    return;
+                  }
+                  openNewPost();
                 }}
-                className="flex items-center justify-center h-14 w-14 rounded-full bg-gray-800 text-white"
-                aria-label="Criar um novo post"
+                className={cameraClass}
+                aria-label={canPost ? "Criar um novo post" : "Apenas colaboradores podem criar posts"}
+                aria-disabled={!canPost}
+                title={!user ? "Login necessário" : !canPost ? "Apenas colaboradores podem criar posts" : "Criar um novo post"}
               >
                 <span className="material-symbols-outlined">photo_camera</span>
               </button>
