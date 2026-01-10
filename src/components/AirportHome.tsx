@@ -1,7 +1,7 @@
 //src/components/AirportHome.tsx
 
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AIRPORT_SBSP, TIMELINE_SBSP } from "../services/mockData";
 import { VisualPost } from "../types";
 import NewPostModal from "./NewPostModal";
@@ -143,6 +143,7 @@ const FALLBACK_AVATAR =
 
 const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [posts, setPosts] = useState<VisualPost[]>([]);
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -575,7 +576,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                  * Se o detalhe do VisualFeed está em outra rota, troque aqui.
                  * Ex.: navigate(`/visual/${post.id}`)
                  */
-                navigate(`/post/${post.id}`);
+                navigate(`/post/${post.id}`, { state: { background: location } });
               }}
               className="bg-surface-dark rounded-xl overflow-hidden border border-white/5 shadow-lg active:scale-[0.99] transition-all cursor-pointer group"
             >
