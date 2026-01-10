@@ -1,11 +1,12 @@
 //src/components/AirportHome.tsx
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, ef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AIRPORT_SBSP, TIMELINE_SBSP } from "../services/mockData";
 import { VisualPost } from "../types";
 import NewPostModal from "./NewPostModal";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../auth/AuthContext";
 
 interface AirportHomeProps {
   onOpenWeather: () => void;
@@ -144,6 +145,7 @@ const FALLBACK_AVATAR =
 const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [posts, setPosts] = useState<VisualPost[]>([]);
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -442,7 +444,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                 // navigate('/profile');
               }}
             >
-              <img src={USER_AVATAR} alt="Avatar do usuário" className="h-10 w-10 object-cover rounded-full" />
+              <img src={_AVATAR} alt="Avatar do usuário" className="h-10 w-10 object-cover rounded-full" />
             </button>
           </div>
 
