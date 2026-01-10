@@ -591,11 +591,6 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
             <article
               key={post.id}
               onClick={() => {
-                /**
-                 * AJUSTE DE ROTA:
-                 * Se o detalhe do VisualFeed está em outra rota, troque aqui.
-                 * Ex.: navigate(`/visual/${post.id}`)
-                 */
                 navigate(`/post/${post.id}`, { state: { background: location } });
               }}
               className="bg-surface-dark rounded-xl overflow-hidden border border-white/5 shadow-lg active:scale-[0.99] transition-all cursor-pointer group"
