@@ -1,4 +1,4 @@
-//src/components/VisualFeedDetail.tsx
+// src/components/VisualFeedDetail.tsx
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -87,6 +87,12 @@ const VisualFeedDetail: React.FC = () => {
   const [author, setAuthor] = useState<Profile | null>(null);
   const [aerodrome, setAerodrome] = useState<Aerodrome | null>(null);
 
+  // confirmação
+  const [userId, setUserId] = useState<string>("");
+  const [confirmCount, setConfirmCount] = useState<number>(0);
+  const [isConfirmed, setIsConfirmed] = useState<boolean>(false);
+  const [confirmBusy, setConfirmBusy] = useState<boolean>(false);
+
   const timestamp = useMemo(() => {
     const t = obs?.event_time || obs?.created_at;
     return t ? relativeTime(t) : "";
@@ -102,6 +108,68 @@ const VisualFeedDetail: React.FC = () => {
     return r === "admin" || r === "collaborator";
   }, [author?.role]);
 
+  async function refreshConfirmationState(observationId: string, uid: string) {
+    // count
+    const { data: countRow, error: cErr } = await supabase
+      .from("observation_confirmation_counts")
+      .select("confirms")
+      .eq("observation_id", observationId)
+      .maybeSingle();
+
+    if (!cErr) setConfirmCount(Number(countRow?.confirms ?? 0));
+
+    // already confirmed?
+    const { data: myRow, error: mErr } = await supabase
+      .from("observation_confirmations")
+      .select("id")
+      .eq("observation_id", observationId)
+      .eq("user_id", uid)
+      .maybeSingle();
+
+    if (!mErr) setIsConfirmed(!!myRow?.id);
+  }
+
+  async function toggleConfirm() {
+    if (!obs?.id || !userId) return;
+    if (confirmBusy) return;
+
+    setConfirmBusy(true);
+    try {
+      if (isConfirmed) {
+        // remove
+        const { error } = await supabase
+          .from("observation_confirmations")
+          .delete()
+          .eq("observation_id", obs.id)
+          .eq("user_id", userId);
+
+        if (error) throw error;
+        setIsConfirmed(false);
+        setConfirmCount((c) => Math.max(0, c - 1));
+      } else {
+        // insert (idempotente via unique constraint)
+        const { error } = await supabase
+          .from("observation_confirmations")
+          .insert({ observation_id: obs.id, user_id: userId });
+
+        if (error) {
+          // Se for conflito por unique, tratamos como já confirmado
+          // (Supabase pode retornar erro 409/23505 dependendo)
+          console.warn("confirm insert error:", error);
+        }
+        setIsConfirmed(true);
+        setConfirmCount((c) => c + 1);
+      }
+
+      // Revalida com fonte de verdade (opcional mas seguro)
+      await refreshConfirmationState(obs.id, userId);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setConfirmBusy(false);
+    }
+  }
+
   useEffect(() => {
     let mounted = true;
 
@@ -113,14 +181,16 @@ const VisualFeedDetail: React.FC = () => {
       setAuthor(null);
       setAerodrome(null);
 
+      setConfirmCount(0);
+      setIsConfirmed(false);
+      setConfirmBusy(false);
+
       if (!id) {
         setErr("Post inválido.");
         setLoading(false);
         return;
       }
 
-      // Se você quiser exigir login para ver detalhe:
-      // (Se o seu app permite visualização sem login, remova esse bloco.)
       const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
       if (sessionErr) {
         console.error(sessionErr);
@@ -132,6 +202,9 @@ const VisualFeedDetail: React.FC = () => {
         navigate("/login", { replace: true });
         return;
       }
+
+      const uid = sessionData.session.user.id;
+      setUserId(uid);
 
       // 1) observation
       const { data: oData, error: oErr } = await supabase
@@ -152,6 +225,9 @@ const VisualFeedDetail: React.FC = () => {
       const o = oData as Observation;
       setObs(o);
 
+      // confirmação: count + meu estado
+      await refreshConfirmationState(o.id, uid);
+
       // 2) aerodrome (para localização)
       const { data: aData, error: aErr } = await supabase
         .from("aerodromes")
@@ -160,12 +236,9 @@ const VisualFeedDetail: React.FC = () => {
         .single();
 
       if (!mounted) return;
-
       if (!aErr && aData) setAerodrome(aData as Aerodrome);
 
       // 3) profile do autor
-      // Se sua policy de profiles bloquear (muito provável), use a view profiles_public:
-      //   .from("profiles_public") em vez de .from("profiles")
       const { data: pData, error: pErr } = await supabase
         .from("profiles")
         .select("id, display_name, avatar_url, role")
@@ -176,12 +249,11 @@ const VisualFeedDetail: React.FC = () => {
 
       if (pErr) {
         console.warn("profiles select blocked or error:", pErr);
-        // fallback mantém layout
       } else {
         setAuthor(pData as Profile);
       }
 
-      // 4) primeira mídia + signed URL (bucket privado)
+      // 4) primeira mídia + signed URL
       const { data: mData, error: mErr } = await supabase
         .from("observation_media")
         .select("id, observation_id, storage_bucket, storage_path, mime_type, bytes, created_at")
@@ -201,7 +273,7 @@ const VisualFeedDetail: React.FC = () => {
       if (media?.storage_bucket && media?.storage_path) {
         const { data: signed, error: sErr } = await supabase.storage
           .from(media.storage_bucket)
-          .createSignedUrl(media.storage_path, 60 * 10); // 10 min
+          .createSignedUrl(media.storage_path, 60 * 10);
 
         if (!mounted) return;
 
@@ -327,7 +399,12 @@ const VisualFeedDetail: React.FC = () => {
                 <span>{timestamp} atrás</span>
               </div>
 
-              {/* distância ainda não existe no modelo MVP */}
+              <div className="w-1 h-1 rounded-full bg-white/40"></div>
+
+              <div className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px]">thumb_up</span>
+                <span>{confirmCount}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -338,16 +415,23 @@ const VisualFeedDetail: React.FC = () => {
             <p className="font-semibold text-lg leading-tight">{locationText}</p>
           </div>
 
-          <p className="text-white/80 text-base leading-relaxed pl-7 drop-shadow-sm">
-            {contentText}
-          </p>
+          <p className="text-white/80 text-base leading-relaxed pl-7 drop-shadow-sm">{contentText}</p>
         </div>
 
         <div className="flex items-center gap-3 pt-2">
-          {/* Confirmar / Chat / Report: integraremos depois */}
-          <button className="flex-1 h-14 bg-primary hover:bg-blue-600 active:bg-blue-700 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20">
+          <button
+            onClick={toggleConfirm}
+            disabled={confirmBusy}
+            className={`flex-1 h-14 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20 ${
+              isConfirmed
+                ? "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800"
+                : "bg-primary hover:bg-blue-600 active:bg-blue-700"
+            } ${confirmBusy ? "opacity-70" : ""}`}
+          >
             <span className="material-symbols-outlined text-white">thumb_up</span>
-            <span className="text-white font-bold text-base">Confirmar</span>
+            <span className="text-white font-bold text-base">
+              {isConfirmed ? "Confirmado" : "Confirmar"}
+            </span>
           </button>
 
           <button className="h-14 w-14 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex flex-col items-center justify-center gap-0.5 text-white">
