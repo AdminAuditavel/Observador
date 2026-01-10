@@ -1,6 +1,6 @@
 //src/components/AirportHome.tsx
 
-import React, { useEffect, ef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AIRPORT_SBSP, TIMELINE_SBSP } from "../services/mockData";
 import { VisualPost } from "../types";
