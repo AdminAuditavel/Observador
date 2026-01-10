@@ -1,5 +1,4 @@
 // src/App.tsx
-
 import React, { useState } from "react";
 import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import AirportHome from "./components/AirportHome";
@@ -9,6 +8,8 @@ import WeatherModal from "./components/WeatherModal";
 import Login from "./pages/Login";
 import { AuthProvider } from "./auth/AuthContext";
 import Signup from "./pages/Signup";
+import InviteCreate from "./pages/InviteCreate";
+import InviteList from "./pages/InviteList";
 
 type LocationState = {
   background?: ReturnType<typeof useLocation>;
@@ -32,6 +33,11 @@ const AppContent: React.FC = () => {
         />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+
+        {/* Rotas de convites */}
+        <Route path="/invites" element={<InviteList />} />
+        <Route path="/invites/new" element={<InviteCreate />} />
+
         <Route path="/post/:id" element={<VisualFeedDetail />} />
         <Route path="/notam/:id" element={<NotamDetail />} />
       </Routes>
