@@ -1,5 +1,4 @@
 // src/pages/InviteList.tsx
-
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../auth/AuthContext";
@@ -145,4 +144,3 @@ export default function InviteList() {
     </main>
   );
 }
-```
