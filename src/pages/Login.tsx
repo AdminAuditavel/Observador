@@ -55,9 +55,15 @@ export default function Login() {
     <main className="p-6 max-w-md mx-auto">
       <h1 className="text-3xl font-semibold text-white mb-6">Observer</h1>
 
-      <p className="text-sm text-gray-400 mb-6">
-        Após login, você será redirecionado para: <code>{next}</code>
-      </p>
+      <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => nav("/")}
+          className="px-3 py-2 rounded-lg border border-gray-600 bg-gray-700 text-white hover:bg-gray-600"
+        >
+          Voltar para Home
+        </button>
+      </div>
 
       <form onSubmit={onSubmit} className="space-y-6">
         <label className="flex flex-col gap-2 text-sm text-white">
