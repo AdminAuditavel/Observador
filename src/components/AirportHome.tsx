@@ -1,5 +1,6 @@
 // src/components/AirportHome.tsx
 
+// src/components/AirportHome.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AIRPORT_SBSP, TIMELINE_SBSP } from "../services/mockData";
@@ -153,8 +154,15 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const [isFavorited, setIsFavorited] = useState(false);
   const recognitionRef = useRef<any>(null);
 
+  // Profile menu state & refs
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const avatarButtonRef = useRef<HTMLButtonElement | null>(null);
+
   // Use a sensible default avatar (can be replaced by actual user data later)
   const USER_AVATAR = posts?.[0]?.authorAvatar || FALLBACK_AVATAR;
+  const avatarSrc =
+    (user as any)?.avatar_url || (user as any)?.profile?.avatar_url || USER_AVATAR;
 
   const handleAddPost = (newPost: VisualPost) => {
     // mantém comportamento atual do modal (apenas UI/local)
@@ -175,7 +183,30 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
     }
   };
 
-  // Voice recognition using Web Speech API
+  // Close profile menu when clicking outside or pressing Escape
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (
+        profileMenuOpen &&
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(e.target as Node) &&
+        avatarButtonRef.current &&
+        !(avatarButtonRef.current.contains(e.target as Node))
+      ) {
+        setProfileMenuOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setProfileMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [profileMenuOpen]);
+
   const startListening = () => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -387,6 +418,18 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
     };
   }, []);
 
+  // sign out handler
+  async function handleSignOut() {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("signOut error", err);
+    } finally {
+      setProfileMenuOpen(false);
+      navigate("/", { replace: true });
+    }
+  }
+
   return (
     <div className="flex flex-col pb-20">
       {/* Header with Background */}
@@ -438,15 +481,66 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
               </form>
             </div>
 
-            <button
-              aria-label="Abrir perfil"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10 overflow-hidden"
-              onClick={() => {
-                // navigate('/profile');
-              }}
-            >
-              <img src={USER_AVATAR} alt="Avatar do usuário" className="h-10 w-10 object-cover rounded-full" />
-            </button>
+            <div className="relative">
+              <button
+                aria-label="Abrir perfil"
+                ref={avatarButtonRef}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10 overflow-hidden"
+                onClick={() => {
+                  // If not logged, go to login (preserve next so we return here)
+                  if (!user) {
+                    navigate(`/login?next=${encodeURIComponent(location.pathname)}`);
+                    return;
+                  }
+                  // if logged, toggle menu
+                  setProfileMenuOpen((s) => !s);
+                }}
+                aria-expanded={profileMenuOpen}
+              >
+                <img src={avatarSrc} alt="Avatar do usuário" className="h-10 w-10 object-cover rounded-full" />
+              </button>
+
+              {profileMenuOpen && (
+                <div
+                  ref={profileMenuRef}
+                  className="absolute right-0 mt-2 w-44 bg-surface-dark border border-white/5 rounded-lg shadow-xl z-50 overflow-hidden"
+                  role="menu"
+                >
+                  <div className="px-3 py-2 text-sm text-gray-300">
+                    {((user as any)?.profile?.display_name || (user as any)?.email) && (
+                      <div className="pb-2 border-b border-white/5 mb-2">
+                        <div className="font-semibold text-white text-sm">
+                          {(user as any)?.profile?.display_name || (user as any)?.email}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {(user as any)?.role ?? (user as any)?.profile?.role ?? "Usuário"}
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        // navigate to profile page if you have one
+                        navigate("/me");
+                      }}
+                      className="w-full text-left px-2 py-2 hover:bg-white/5 rounded text-sm"
+                    >
+                      Ver Perfil
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="w-full text-left px-2 py-2 mt-1 bg-red-600 text-white rounded text-sm hover:opacity-95"
+                    >
+                      Sair
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-col gap-3">
