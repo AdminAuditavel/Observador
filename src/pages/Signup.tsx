@@ -1,7 +1,5 @@
 // src/pages/Signup.tsx
 
-// src/pages/Signup.tsx
-
 import React, { FormEvent, useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
@@ -190,7 +188,7 @@ export default function Signup() {
 
       <form onSubmit={onSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700" htmlFor="displayName">
+          <label className="block text-sm font-medium text-gray-200" htmlFor="displayName">
             Nome (opcional)
           </label>
           <input
@@ -199,12 +197,12 @@ export default function Signup() {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Como quer ser chamado?"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700" htmlFor="email">
+          <label className="block text-sm font-medium text-gray-200" htmlFor="email">
             Email
           </label>
           <input
@@ -213,12 +211,12 @@ export default function Signup() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700" htmlFor="password">
+          <label className="block text-sm font-medium text-gray-200" htmlFor="password">
             Senha
           </label>
           <input
@@ -227,13 +225,13 @@ export default function Signup() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
           />
         </div>
 
         {/* Contact Phone */}
         <div>
-          <label className="block text-sm font-medium text-gray-700" htmlFor="contactPhone">
+          <label className="block text-sm font-medium text-gray-200" htmlFor="contactPhone">
             Telefone de contato
           </label>
           <input
@@ -241,13 +239,13 @@ export default function Signup() {
             type="tel"
             value={contactPhone}
             onChange={(e) => setContactPhone(e.target.value)}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
           />
         </div>
 
         {/* Organization */}
         <div>
-          <label className="block text-sm font-medium text-gray-700" htmlFor="organization">
+          <label className="block text-sm font-medium text-gray-200" htmlFor="organization">
             Organização
           </label>
           <input
@@ -255,13 +253,13 @@ export default function Signup() {
             type="text"
             value={organization}
             onChange={(e) => setOrganization(e.target.value)}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
           />
         </div>
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-gray-700" htmlFor="notes">
+          <label className="block text-sm font-medium text-gray-200" htmlFor="notes">
             Notas (opcional)
           </label>
           <textarea
@@ -269,13 +267,13 @@ export default function Signup() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Notas sobre você ou o cadastro"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
           />
         </div>
 
         {/* Invite Code */}
         <div>
-          <label className="block text-sm font-medium text-gray-700" htmlFor="inviteCode">
+          <label className="block text-sm font-medium text-gray-200" htmlFor="inviteCode">
             Código de convite (opcional)
           </label>
           <div className="flex items-center space-x-2">
@@ -286,7 +284,7 @@ export default function Signup() {
               onChange={(e) => setInviteCode(e.target.value)}
               onBlur={() => validateInvite(inviteCode.trim())}
               placeholder="Insira o código do convite"
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
             />
             <button
               type="button"
