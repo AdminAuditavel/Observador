@@ -1,5 +1,7 @@
 // src/components/VisualFeedDetail.tsx
 
+// src/components/VisualFeedDetail.tsx
+
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
@@ -77,12 +79,12 @@ const FALLBACK_AVATAR =
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=160&h=160";
 
 const VisualFeedDetail: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
-  const { id } = useParams();  
+  const { id } = useParams();
 
-  const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
   const [err, setErr] = useState<string>("");
 
   const [obs, setObs] = useState<Observation | null>(null);
@@ -111,21 +113,7 @@ const VisualFeedDetail: React.FC = () => {
     return r === "admin" || r === "collaborator";
   }, [author?.role]);
 
-  async function onConfirm() {
-    if (loading) return;
-  
-    if (!user) {
-      nav(`/login?next=/post/${id}`, {
-        state: { background: loc.state?.background },
-      });
-      return;
-    }
-  
-    // usuário logado → confirmar normalmente
-    await confirmObservation(id!);
-  }
-
-  async function refreshConfirmationState(observationId: string, uid: string) {
+  async function refreshConfirmationState(observationId: string, uid?: string) {
     // count
     const { data: countRow, error: cErr } = await supabase
       .from("observation_confirmation_counts")
@@ -135,7 +123,12 @@ const VisualFeedDetail: React.FC = () => {
 
     if (!cErr) setConfirmCount(Number(countRow?.confirms ?? 0));
 
-    // already confirmed?
+    // estado do usuário (se houver login)
+    if (!uid) {
+      setIsConfirmed(false);
+      return;
+    }
+
     const { data: myRow, error: mErr } = await supabase
       .from("observation_confirmations")
       .select("id")
@@ -147,39 +140,48 @@ const VisualFeedDetail: React.FC = () => {
   }
 
   async function toggleConfirm() {
-    if (!obs?.id || !userId) return;
+    if (!obs?.id) return;
     if (confirmBusy) return;
+
+    // Gate de login aqui (pois o botão chama toggleConfirm)
+    if (authLoading) return;
+    if (!user) {
+      nav(`/login?next=/post/${obs.id}`, {
+        state: { background: (loc.state as any)?.background },
+      });
+      return;
+    }
+
+    const uid = user.id as string;
+    setUserId(uid);
 
     setConfirmBusy(true);
     try {
       if (isConfirmed) {
-        // remove
         const { error } = await supabase
           .from("observation_confirmations")
           .delete()
           .eq("observation_id", obs.id)
-          .eq("user_id", userId);
+          .eq("user_id", uid);
 
         if (error) throw error;
+
         setIsConfirmed(false);
         setConfirmCount((c) => Math.max(0, c - 1));
       } else {
-        // insert (idempotente via unique constraint)
         const { error } = await supabase
           .from("observation_confirmations")
-          .insert({ observation_id: obs.id, user_id: userId });
+          .insert({ observation_id: obs.id, user_id: uid });
 
         if (error) {
-          // Se for conflito por unique, tratamos como já confirmado
-          // (Supabase pode retornar erro 409/23505 dependendo)
           console.warn("confirm insert error:", error);
         }
+
         setIsConfirmed(true);
         setConfirmCount((c) => c + 1);
       }
 
-      // Revalida com fonte de verdade (opcional mas seguro)
-      await refreshConfirmationState(obs.id, userId);
+      await refreshConfirmationState(obs.id, uid);
     } catch (e) {
       console.error(e);
     } finally {
@@ -191,7 +193,7 @@ const VisualFeedDetail: React.FC = () => {
     let mounted = true;
 
     async function load() {
-      setLoading(true);
+      setPageLoading(true);
       setErr("");
       setObs(null);
       setMediaUrl("");
@@ -204,29 +206,21 @@ const VisualFeedDetail: React.FC = () => {
 
       if (!id) {
         setErr("Post inválido.");
-        setLoading(false);
+        setPageLoading(false);
         return;
       }
 
-      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
-      if (sessionErr) {
-        console.error(sessionErr);
-        setErr("Falha ao verificar sessão.");
-        setLoading(false);
-        return;
-      }
-      if (!sessionData.session) {
-        navigate("/login", { replace: true });
-        return;
-      }
-
-      const uid = sessionData.session.user.id;
+      // Se estiver logado, guarda userId e carrega "meu estado".
+      // Se não estiver, ainda assim carrega o detalhe (público).
+      const uid = user?.id ? String(user.id) : "";
       setUserId(uid);
 
       // 1) observation
       const { data: oData, error: oErr } = await supabase
         .from("observations")
-        .select("id, created_at, event_time, type, caption, privacy, status, created_by, aerodrome_id")
+        .select(
+          "id, created_at, event_time, type, caption, privacy, status, created_by, aerodrome_id"
+        )
         .eq("id", id)
         .single();
 
@@ -235,17 +229,17 @@ const VisualFeedDetail: React.FC = () => {
       if (oErr) {
         console.error(oErr);
         setErr("Não foi possível carregar esta observação (sem permissão ou inexistente).");
-        setLoading(false);
+        setPageLoading(false);
         return;
       }
 
       const o = oData as Observation;
       setObs(o);
 
-      // confirmação: count + meu estado
-      await refreshConfirmationState(o.id, uid);
+      // confirmação: count + meu estado (se uid existir)
+      await refreshConfirmationState(o.id, uid || undefined);
 
-      // 2) aerodrome (para localização)
+      // 2) aerodrome
       const { data: aData, error: aErr } = await supabase
         .from("aerodromes")
         .select("id, icao, name")
@@ -282,7 +276,7 @@ const VisualFeedDetail: React.FC = () => {
 
       if (mErr) {
         console.error(mErr);
-        setLoading(false);
+        setPageLoading(false);
         return;
       }
 
@@ -301,7 +295,7 @@ const VisualFeedDetail: React.FC = () => {
         }
       }
 
-      setLoading(false);
+      setPageLoading(false);
     }
 
     load();
@@ -309,7 +303,8 @@ const VisualFeedDetail: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [id, navigate]);
+    // Recarrega se mudar o id ou o estado de auth (para atualizar isConfirmed)
+  }, [id, user?.id]);
 
   const authorName = author?.display_name || "Colaborador";
   const authorAvatar = author?.avatar_url || FALLBACK_AVATAR;
@@ -321,7 +316,7 @@ const VisualFeedDetail: React.FC = () => {
   const contentText = obs?.caption || "(Sem texto)";
   const backgroundImage = mediaUrl || FALLBACK_BG;
 
-  if (loading) {
+  if (pageLoading) {
     return (
       <div className="relative h-screen w-full flex items-center justify-center bg-black text-white">
         Carregando...
@@ -333,7 +328,7 @@ const VisualFeedDetail: React.FC = () => {
     return (
       <div className="relative h-screen w-full flex flex-col bg-black text-white p-6">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => nav(-1)}
           className="flex items-center justify-center w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/10"
         >
           <span className="material-symbols-outlined text-white">arrow_back</span>
@@ -347,21 +342,27 @@ const VisualFeedDetail: React.FC = () => {
     <div className="relative h-screen w-full flex flex-col bg-black overflow-hidden">
       {/* Background Media */}
       <div className="absolute inset-0 z-0">
-        <img src={backgroundImage} className="w-full h-full object-cover opacity-80" alt="Context" />
+        <img
+          src={backgroundImage}
+          className="w-full h-full object-cover opacity-80"
+          alt="Context"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/90"></div>
       </div>
 
       {/* Top Header */}
       <div className="relative z-10 flex items-center justify-between p-4 pt-10">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => nav(-1)}
           className="flex items-center justify-center w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/10"
         >
           <span className="material-symbols-outlined text-white">arrow_back</span>
         </button>
 
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/20 backdrop-blur-md border border-amber-500/30">
-          <span className="material-symbols-outlined text-amber-300 text-[18px]">group</span>
+          <span className="material-symbols-outlined text-amber-300 text-[18px]">
+            group
+          </span>
           <span className="text-[10px] font-bold text-amber-200 uppercase tracking-wide">
             {collaborativeLabel}
           </span>
@@ -395,7 +396,9 @@ const VisualFeedDetail: React.FC = () => {
 
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-lg drop-shadow-md">{authorName}</span>
+              <span className="text-white font-bold text-lg drop-shadow-md">
+                {authorName}
+              </span>
 
               {isVerified && (
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/20 text-white backdrop-blur-sm uppercase">
@@ -412,14 +415,18 @@ const VisualFeedDetail: React.FC = () => {
 
             <div className="flex items-center text-white/80 text-sm gap-3 font-medium">
               <div className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-[16px]">schedule</span>
+                <span className="material-symbols-outlined text-[16px]">
+                  schedule
+                </span>
                 <span>{timestamp} atrás</span>
               </div>
 
               <div className="w-1 h-1 rounded-full bg-white/40"></div>
 
               <div className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-[16px]">thumb_up</span>
+                <span className="material-symbols-outlined text-[16px]">
+                  thumb_up
+                </span>
                 <span>{confirmCount}</span>
               </div>
             </div>
@@ -428,11 +435,15 @@ const VisualFeedDetail: React.FC = () => {
 
         <div className="space-y-2">
           <div className="flex items-start gap-2 text-white/90">
-            <span className="material-symbols-outlined text-primary mt-0.5">location_on</span>
+            <span className="material-symbols-outlined text-primary mt-0.5">
+              location_on
+            </span>
             <p className="font-semibold text-lg leading-tight">{locationText}</p>
           </div>
 
-          <p className="text-white/80 text-base leading-relaxed pl-7 drop-shadow-sm">{contentText}</p>
+          <p className="text-white/80 text-base leading-relaxed pl-7 drop-shadow-sm">
+            {contentText}
+          </p>
         </div>
 
         <div className="flex items-center gap-3 pt-2">
