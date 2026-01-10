@@ -15,7 +15,7 @@ const WeatherModal: React.FC<WeatherModalProps> = ({ onClose }) => {
   const decodeWithAI = async () => {
     setIsLoadingAi(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Analise este METAR/TAF aeronáutico para o aeroporto SBSP e explique em português simples para um piloto, destacando riscos se houver: ${AIRPORT_SBSP.metar}`,
