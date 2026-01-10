@@ -576,33 +576,17 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
             </div>
             <button
               onClick={() => {
-                if (!user) {
-                  setIsNewPostModalOpen(false); // Só esconde o modal de novo post
-                  alert("Acesso por convite. Faça login para continuar.");
+                if (!user || user.role !== "collaborator") {
+                  alert("Você precisa ser colaborador para criar um post.");
                   return;
                 }
                 openNewPost();
               }}
-              className="flex flex-col items-center justify-center h-16 w-16 rounded-full bg-primary hover:bg-blue-600 active:bg-blue-700 transition-colors shadow-lg text-white"
+              className="flex items-center justify-center h-14 w-14 rounded-full bg-gray-800 text-white"
               aria-label="Criar um novo post"
             >
-              <span className="material-symbols-outlined text-[28px]">photo_camera</span>
-              {!user && (
-                <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50">
-                  <div className="bg-white p-6 rounded-lg shadow-xl text-center max-w-md mx-auto">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4">
-                      Acesso por convite necessário!
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Para criar um post, você precisa estar logado como colaborador. Solicite um convite ou
-                      faça login.
-                    </p>
-                    <button
-                      onClick={() => navigate("/login")}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all"
-                    >
-                      Fazer login
-                    </button>
+              <span className="material-symbols-outlined">photo_camera</span>
+            </button>
                     <div className="mt-3">
                       <button
                         onClick={() => navigate("/signup")}
