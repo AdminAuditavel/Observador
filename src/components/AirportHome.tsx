@@ -319,6 +319,19 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
           // Se sua policy bloquear, seguimos com fallback.
           console.warn("profiles select blocked or error:", pErr);
         }
+        
+        // 4.5) contagem de confirmações (1 query)
+        const { data: countsRows, error: cErr } = await supabase
+          .from("observation_confirmation_counts")
+          .select("observation_id, confirms")
+          .in("observation_id", obsIds);
+        
+        if (cErr) console.warn("confirmation counts error:", cErr);
+        
+        const confirmsByObs = new Map<string, number>();
+        (countsRows as any[] | null)?.forEach((r) => {
+          confirmsByObs.set(r.observation_id, Number(r.confirms || 0));
+        });
 
         const profileById = new Map<string, Profile>();
         (profiles as any[] | null)?.forEach((p) => profileById.set(p.id, p as Profile));
@@ -349,7 +362,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
             content: o.caption || "(Sem texto)",
             imageUrl: signedUrlByObs.get(o.id) || FALLBACK_IMAGE,
             timestamp: `${relativeTimeShort(t)}`,
-            likes: 0,
+            likes: confirmsByObs.get(o.id) ?? 0,
             confidence: "Alta Confiança", // placeholder (MVP). Depois ligamos a confirmações.
             location: `${AIRPORT_SBSP.icao}${aerodrome.name ? ` — ${aerodrome.name}` : ""}`,
             distance: "", // ainda não temos no modelo MVP
