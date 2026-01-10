@@ -1,6 +1,8 @@
 // src/pages/Signup.tsx
 
-import React, {useEffect, FormEvent, useState, useMemo } from "react";
+// src/pages/Signup.tsx
+
+import React, { FormEvent, useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../auth/AuthContext";
@@ -22,6 +24,10 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [notes, setNotes] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string>("");
 
@@ -34,6 +40,7 @@ export default function Signup() {
     initialInvite ? "validating" : "idle"
   );
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
+  const [role, setRole] = useState<string>("user"); // Default role is "user"
 
   // redirect if already logged
   React.useEffect(() => {
@@ -59,7 +66,7 @@ export default function Signup() {
     try {
       const { data, error } = await supabase
         .from("invites")
-        .select("token, expires_at, used, uses, uses_limit, single_use, issued_to_email")
+        .select("token, expires_at, used, uses, uses_limit, single_use, issued_to_email, role")
         .eq("token", token)
         .maybeSingle();
 
@@ -105,6 +112,12 @@ export default function Signup() {
           ? `Convite válido (destinado a ${data.issued_to_email}).`
           : "Convite válido — será aplicado no cadastro."
       );
+
+      // Set the role from the invite data (if exists)
+      if (data.role) {
+        setRole(data.role); // Assign role from invite
+      }
+
     } catch (error) {
       console.error("validateInvite error", error);
       setInviteStatus("invalid");
@@ -143,12 +156,16 @@ export default function Signup() {
       // Upsert profile (if userId available). If consume RPC already set collaborator role server-side
       // you can still upsert to ensure display_name/email present.
       if (userId) {
-        const roleToSet = inviteStatus === "valid" ? "collaborator" : "user";
         const profilePayload: any = {
           id: userId,
           email,
           display_name: displayName || null,
-          role: roleToSet,
+          role: role, // Set role based on invite
+          avatar_url: avatarUrl || null,
+          contact_email: email,
+          contact_phone: contactPhone || null,
+          organization: organization || null,
+          notes: notes || null,
         };
 
         const { error: profileError } = await supabase.from("profiles").upsert([profilePayload]);
@@ -210,6 +227,48 @@ export default function Signup() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </div>
+
+        {/* Contact Phone */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700" htmlFor="contactPhone">
+            Telefone de contato
+          </label>
+          <input
+            id="contactPhone"
+            type="tel"
+            value={contactPhone}
+            onChange={(e) => setContactPhone(e.target.value)}
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </div>
+
+        {/* Organization */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700" htmlFor="organization">
+            Organização
+          </label>
+          <input
+            id="organization"
+            type="text"
+            value={organization}
+            onChange={(e) => setOrganization(e.target.value)}
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700" htmlFor="notes">
+            Notas (opcional)
+          </label>
+          <textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Notas sobre você ou o cadastro"
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
