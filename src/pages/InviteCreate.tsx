@@ -1,5 +1,4 @@
 // src/pages/InviteCreate.tsx
-
 import React, { FormEvent, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
@@ -40,6 +39,7 @@ export default function InviteCreate() {
 
   function localDatetimeToISO(value: string | ""): string | null {
     if (!value) return null;
+    // value is in "yyyy-mm-ddThh:mm" format (no timezone). Convert to ISO.
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return null;
     return d.toISOString();
@@ -59,15 +59,18 @@ export default function InviteCreate() {
         uses: 0,
       };
 
+      // max_uses: if empty or <= 0 => null (meaning unlimited), else store number
       if (maxUses === "" || Number(maxUses) <= 0) {
         payload.max_uses = null;
       } else {
         payload.max_uses = Number(maxUses);
       }
 
+      // expires_at: convert to ISO or null
       const isoExpires = localDatetimeToISO(expiresAt);
       payload.expires_at = isoExpires;
 
+      // insert into invites; return inserted row
       const { data, error } = await supabase
         .from("invites")
         .insert([payload])
@@ -79,6 +82,7 @@ export default function InviteCreate() {
         throw error;
       }
 
+      // Show success with token and other info
       setSuccessData({
         id: (data as any)?.id,
         token: (data as any)?.token ?? payload.token,
@@ -144,6 +148,7 @@ export default function InviteCreate() {
             <button
               type="button"
               onClick={() => {
+                // reset form to create another
                 setSuccessData(null);
                 setToken(generateToken(24));
                 setExpiresAt("");
@@ -278,4 +283,3 @@ export default function InviteCreate() {
     </main>
   );
 }
-```
