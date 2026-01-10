@@ -9,7 +9,7 @@ import { supabase } from "../lib/supabaseClient";
 type Observation = {
   id: string;
   created_at: string;
-  event_time: string;
+  event_time: string | null;
   type: string;
   caption: string | null;
   privacy: "public" | "collaborators";
@@ -25,6 +25,7 @@ type Media = {
   storage_path: string;
   mime_type: string | null;
   bytes: number | null;
+  created_at: string;
 };
 
 type Profile = {
@@ -93,15 +94,15 @@ const VisualFeedDetail: React.FC = () => {
     return t ? relativeTime(t) : "";
   }, [obs?.event_time, obs?.created_at]);
 
-  const isVerified = useMemo(() => {
-    const r = author?.role;
-    return r === "admin" || r === "collaborator";
-  }, [author?.role]);
-
   const collaborativeLabel = useMemo(() => {
     if (!obs) return "Colaborativo";
     return obs.privacy === "collaborators" ? "Colaborativo" : "Público";
   }, [obs]);
+
+  const isVerified = useMemo(() => {
+    const r = author?.role;
+    return r === "admin" || r === "collaborator";
+  }, [author?.role]);
 
   useEffect(() => {
     let mounted = true;
@@ -120,7 +121,8 @@ const VisualFeedDetail: React.FC = () => {
         return;
       }
 
-      // Sessão (ajuste o redirect se você tiver rota própria)
+      // Se você quiser exigir login para ver detalhe:
+      // (Se o seu app permite visualização sem login, remova esse bloco.)
       const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
       if (sessionErr) {
         console.error(sessionErr);
@@ -152,24 +154,7 @@ const VisualFeedDetail: React.FC = () => {
       const o = oData as Observation;
       setObs(o);
 
-      // 2) author profile (seu RLS atual permite usuário ler só o próprio profile.
-      // Se isso te bloquear, eu ajusto a policy para permitir SELECT de profiles de autores.)
-      const { data: pData, error: pErr } = await supabase
-        .from("profiles")
-        .select("id, display_name, avatar_url, role")
-        .eq("id", o.created_by)
-        .single();
-
-      if (!mounted) return;
-
-      if (pErr) {
-        console.warn("profiles select blocked or error:", pErr);
-        // Mantém fallback de nome/avatar
-      } else {
-        setAuthor(pData as Profile);
-      }
-
-      // 3) aerodrome
+      // 2) aerodrome (para localização)
       const { data: aData, error: aErr } = await supabase
         .from("aerodromes")
         .select("id, icao, name")
@@ -180,7 +165,25 @@ const VisualFeedDetail: React.FC = () => {
 
       if (!aErr && aData) setAerodrome(aData as Aerodrome);
 
-      // 4) primeira mídia + signed URL
+      // 3) profile do autor
+      // Se sua policy de profiles bloquear (muito provável), use a view profiles_public:
+      //   .from("profiles_public") em vez de .from("profiles")
+      const { data: pData, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url, role")
+        .eq("id", o.created_by)
+        .single();
+
+      if (!mounted) return;
+
+      if (pErr) {
+        console.warn("profiles select blocked or error:", pErr);
+        // fallback mantém layout
+      } else {
+        setAuthor(pData as Profile);
+      }
+
+      // 4) primeira mídia + signed URL (bucket privado)
       const { data: mData, error: mErr } = await supabase
         .from("observation_media")
         .select("id, observation_id, storage_bucket, storage_path, mime_type, bytes, created_at")
@@ -200,7 +203,7 @@ const VisualFeedDetail: React.FC = () => {
       if (media?.storage_bucket && media?.storage_path) {
         const { data: signed, error: sErr } = await supabase.storage
           .from(media.storage_bucket)
-          .createSignedUrl(media.storage_path, 60 * 10);
+          .createSignedUrl(media.storage_path, 60 * 10); // 10 min
 
         if (!mounted) return;
 
@@ -215,6 +218,7 @@ const VisualFeedDetail: React.FC = () => {
     }
 
     load();
+
     return () => {
       mounted = false;
     };
@@ -291,6 +295,9 @@ const VisualFeedDetail: React.FC = () => {
               src={authorAvatar}
               className="w-12 h-12 rounded-full border-2 border-white/20 object-cover"
               alt={authorName}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = FALLBACK_AVATAR;
+              }}
             />
             {isVerified && (
               <div className="absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-[2px] border border-black">
@@ -321,6 +328,8 @@ const VisualFeedDetail: React.FC = () => {
                 <span className="material-symbols-outlined text-[16px]">schedule</span>
                 <span>{timestamp} atrás</span>
               </div>
+
+              {/* distância ainda não existe no modelo MVP */}
             </div>
           </div>
         </div>
@@ -337,6 +346,7 @@ const VisualFeedDetail: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3 pt-2">
+          {/* Confirmar / Chat / Report: integraremos depois */}
           <button className="flex-1 h-14 bg-primary hover:bg-blue-600 active:bg-blue-700 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20">
             <span className="material-symbols-outlined text-white">thumb_up</span>
             <span className="text-white font-bold text-base">Confirmar</span>
