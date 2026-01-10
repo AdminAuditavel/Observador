@@ -24,13 +24,16 @@ export default function Signup() {
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string>("");
 
-  // se já está logado, volta direto
+  const [role, setRole] = useState<string>("user");  // Default role for regular users
+
+  // Se o usuário já estiver logado, redireciona
   React.useEffect(() => {
     if (!loading && user) {
       nav(next, { replace: true });
     }
   }, [loading, user, next, nav]);
 
+  // Lógica para registrar um colaborador
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setErr("");
@@ -40,22 +43,21 @@ export default function Signup() {
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
 
-      /**
-       * Observação: dependendo da config do Supabase,
-       * pode haver confirmação por email.
-       * Se a sessão vier imediatamente, você já retorna pro "next".
-       * Se não vier, você pode mostrar mensagem.
-       */
-      const { data } = await supabase.auth.getSession();
-      const hasSession = !!data.session;
+      // Definir o papel de usuário após o cadastro
+      const { data, error: profileError } = await supabase
+        .from("profiles")
+        .upsert([
+          {
+            id: supabase.auth.user()?.id,
+            email,
+            role: role === "collaborator" ? "collaborator" : "user",  // Definir o papel
+          },
+        ]);
 
-      if (hasSession) {
-        nav(next, { replace: true });
-        return;
-      }
+      if (profileError) throw profileError;
 
-      // fallback: permanece na tela com orientação (sem travar o usuário)
-      setErr("Conta criada. Verifique seu email para confirmar e depois faça login.");
+      // Se o cadastro for bem-sucedido, redireciona para a página "next"
+      nav(next, { replace: true });
     } catch (e: any) {
       console.error(e);
       setErr("Falha ao criar conta. Verifique e tente novamente.");
@@ -97,7 +99,20 @@ export default function Signup() {
           />
         </label>
 
-        {err && <p style={{ color: err.includes("Conta criada") ? "#d97706" : "crimson" }}>{err}</p>}
+        {/* Novo campo para escolher o papel */}
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>Escolha seu papel</span>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+          >
+            <option value="user">Usuário (Apenas visualização)</option>
+            <option value="collaborator">Colaborador (Criar post)</option>
+          </select>
+        </label>
+
+        {err && <p style={{ color: "crimson" }}>{err}</p>}
 
         <button
           disabled={submitting}
