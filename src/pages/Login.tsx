@@ -22,6 +22,7 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string>("");
 
@@ -55,16 +56,6 @@ export default function Login() {
     <main className="p-6 max-w-md mx-auto">
       <h1 className="text-3xl font-semibold text-white mb-6">Observer</h1>
 
-      <div className="mb-6">
-        <button
-          type="button"
-          onClick={() => nav("/")}
-          className="px-3 py-2 rounded-lg border border-gray-600 bg-gray-700 text-white hover:bg-gray-600"
-        >
-          Voltar para Home
-        </button>
-      </div>
-
       <form onSubmit={onSubmit} className="space-y-6">
         <label className="flex flex-col gap-2 text-sm text-white">
           <span>Email</span>
@@ -78,16 +69,26 @@ export default function Login() {
           />
         </label>
 
-        <label className="flex flex-col gap-2 text-sm text-white">
+        <label className="flex flex-col gap-2 text-sm text-white relative">
           <span>Senha</span>
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete="current-password"
-            required
-            className="p-3 rounded-lg border border-gray-600 bg-gray-800 text-white"
-          />
+          <div className="relative">
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              className="w-full p-3 rounded-lg border border-gray-600 bg-gray-800 text-white pr-20"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-blue-400 hover:underline px-2 py-1"
+              aria-label={showPassword ? "Esconder senha" : "Mostrar senha"}
+            >
+              {showPassword ? "Esconder" : "Mostrar"}
+            </button>
+          </div>
         </label>
 
         {err && <p className="text-red-500 text-sm">{err}</p>}
@@ -108,13 +109,21 @@ export default function Login() {
           Criar conta
         </button>
 
-        <div className="text-center mt-6">
+        <div className="mt-6 flex items-center justify-between text-sm">
           <button
             type="button"
             onClick={() => nav("/forgot-password")}
-            className="text-sm text-blue-400 hover:underline"
+            className="text-blue-400 hover:underline"
           >
             Esqueceu sua senha?
+          </button>
+
+          <button
+            type="button"
+            onClick={() => nav("/")}
+            className="text-blue-400 hover:underline"
+          >
+            Voltar para Home
           </button>
         </div>
       </form>
