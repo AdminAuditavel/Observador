@@ -1,20 +1,14 @@
 // src/pages/Signup.tsx
 
-import React, { FormEvent, useEffect, useMemo, useState } from "react";
+import React, { FormEvent, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../auth/AuthContext";
 
-/**
- * Signup page with optional invite handling.
- * - Prefills invite from ?invite=TOKEN when present
- * - Validates invite via RPC 'validate_invite' if available, otherwise reads invites table
- * - On successful signup tries to consume invite via RPC 'consume_invite_for_user'
- */
-
 function getNextFromQuery(search: string) {
   const sp = new URLSearchParams(search);
   const raw = sp.get("next");
+  // segurança básica: só aceita caminhos internos
   if (raw && raw.startsWith("/")) return raw;
   return "/";
 }
@@ -27,8 +21,14 @@ export default function Signup() {
   const next = useMemo(() => getNextFromQuery(loc.search), [loc.search]);
 
   const [email, setEmail] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [notes, setNotes] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [role, setRole] = useState("user");  // Default role is 'user'
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string>("");
 
@@ -41,7 +41,7 @@ export default function Signup() {
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
 
   // redirect if already logged
-  useEffect(() => {
+  React.useEffect(() => {
     if (!loading && user) {
       nav(next, { replace: true });
     }
@@ -79,7 +79,6 @@ export default function Signup() {
           }
         }
       } catch (rpcErr) {
-        // Ignore rpc error and fallback to table select
         console.debug("validate_invite rpc not available or failed, falling back to table select", rpcErr);
       }
 
@@ -145,7 +144,6 @@ export default function Signup() {
     try {
       // Call server-side RPC that consumes invite and sets role securely
       const res = await supabase.rpc("consume_invite_for_user", { p_token: token, p_user: userId }).single();
-      // If your RPC returns jsonb with ok flag:
       const payload: any = res;
       if (payload?.ok === false) return { ok: false, message: payload?.message || "RPC returned not ok" };
       return { ok: true, data: payload };
@@ -175,7 +173,6 @@ export default function Signup() {
       if (signData && (signData as any).user && (signData as any).user.id) {
         userId = (signData as any).user.id;
       } else {
-        // try getUser fallback (may require session cookie)
         try {
           const current = await supabase.auth.getUser();
           userId = current?.data?.user?.id ?? null;
@@ -188,19 +185,22 @@ export default function Signup() {
       if (inviteStatus === "valid" && inviteCode.trim() && userId) {
         const consumed = await consumeInviteRpc(inviteCode.trim(), userId);
         if (!consumed.ok) {
-          // Not fatal: inform user in console and continue. Ideally display a message.
           console.warn("invite consumption warning:", consumed.message);
         }
       }
 
       // Upsert profile (if userId available). If consume RPC already set collaborator role server-side
-      // you can still upsert to ensure display_name/email present.
       if (userId) {
         const roleToSet = inviteStatus === "valid" ? "collaborator" : "user";
         const profilePayload: any = {
           id: userId,
           email,
           display_name: displayName || null,
+          contact_email: contactEmail || null,
+          contact_phone: contactPhone || null,
+          organization: organization || null,
+          notes: notes || null,
+          avatar_url: avatarUrl || null,
           role: roleToSet,
         };
 
@@ -208,9 +208,6 @@ export default function Signup() {
         if (profileError) {
           console.warn("profile upsert error", profileError);
         }
-      } else {
-        // userId not available immediately (email confirmation flows). Inform user to confirm email.
-        console.info("User ID not immediately available: user may need to confirm email. Profile will be created after confirm.");
       }
 
       // navigate back to next (signup may require email confirmation; still redirect)
@@ -262,6 +259,56 @@ export default function Signup() {
             type="password"
             autoComplete="new-password"
             required
+            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+          />
+        </label>
+
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>Email de contato</span>
+          <input
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+            placeholder="Email de contato"
+            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+          />
+        </label>
+
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>Telefone de contato</span>
+          <input
+            value={contactPhone}
+            onChange={(e) => setContactPhone(e.target.value)}
+            placeholder="Telefone de contato"
+            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+          />
+        </label>
+
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>Organização</span>
+          <input
+            value={organization}
+            onChange={(e) => setOrganization(e.target.value)}
+            placeholder="Organização"
+            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+          />
+        </label>
+
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>Observações</span>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Observações"
+            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+          />
+        </label>
+
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>URL do Avatar</span>
+          <input
+            value={avatarUrl}
+            onChange={(e) => setAvatarUrl(e.target.value)}
+            placeholder="URL do avatar (opcional)"
             style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
           />
         </label>
