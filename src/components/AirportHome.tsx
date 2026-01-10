@@ -149,6 +149,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const [posts, setPosts] = useState<VisualPost[]>([]);
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -593,16 +594,6 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
               >
                 <span className="material-symbols-outlined">photo_camera</span>
               </button>
-
-              {/* Se usuário não é colaborador, ainda oferecemos o link para solicitar convite */}
-              {!user || user.role !== "collaborator" ? (
-                <button
-                  onClick={() => navigate("/signup")}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Solicitar convite
-                </button>
-              ) : null}
             </div>
           </div>
 
@@ -673,40 +664,56 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
         </section>
       </main>
 
-      {/* Modal de Convite */}
+      {/* Modal de Convite (inline: inserir link/código de convite) */}
       {showInviteModal && (
         <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl text-center max-w-md mx-auto">
             <h3 className="text-xl font-bold text-gray-800 mb-4">Acesso por convite necessário!</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Para criar um post, você precisa estar logado como colaborador. Solicite um convite ou faça login.
+              Para criar um post, você precisa ser colaborador. Se você recebeu um link ou código de convite,
+              cole-o abaixo para continuar para o cadastro com convite. Caso já tenha conta, faça login.
             </p>
+
+            <div className="flex gap-2 mb-4">
+              <input
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="Cole o link ou código de convite"
+                className="w-full px-3 py-2 border rounded-md text-sm"
+                aria-label="Código de convite"
+              />
+              <button
+                onClick={() => {
+                  const code = encodeURIComponent(inviteCode.trim());
+                  if (!code) return;
+                  navigate(`/signup?invite=${code}`);
+                  setShowInviteModal(false);
+                }}
+                disabled={!inviteCode.trim()}
+                className={`px-4 py-2 rounded-md text-white ${inviteCode.trim() ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-300 cursor-not-allowed"}`}
+              >
+                Usar convite
+              </button>
+            </div>
+
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={() => {
                   navigate("/login");
                   setShowInviteModal(false);
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all"
+                className="px-4 py-2 bg-transparent text-blue-600 rounded-md hover:underline transition-all"
               >
                 Fazer login
               </button>
+
               <button
-                onClick={() => {
-                  navigate("/signup");
-                  setShowInviteModal(false);
-                }}
-                className="px-4 py-2 bg-transparent text-blue-600 rounded-md hover:underline transition-all"
+                onClick={() => setShowInviteModal(false)}
+                className="px-4 py-2 text-gray-600 rounded-md hover:underline transition-all"
               >
-                Solicitar convite
+                Fechar
               </button>
             </div>
-            <button
-              onClick={() => setShowInviteModal(false)}
-              className="mt-4 text-sm text-gray-500 hover:underline"
-            >
-              Fechar
-            </button>
           </div>
         </div>
       )}
