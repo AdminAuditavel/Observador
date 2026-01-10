@@ -1,5 +1,4 @@
 // src/pages/Signup.tsx
-
 import React, { FormEvent, useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
@@ -25,8 +24,8 @@ export default function Signup() {
   const [contactPhone, setContactPhone] = useState("");
   const [organization, setOrganization] = useState("");
   const [notes, setNotes] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState(""); // public URL (or manual URL)
-  const [avatarFile, setAvatarFile] = useState<File | null>(null); // chosen file (will be uploaded after signup)
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string>("");
 
@@ -40,9 +39,9 @@ export default function Signup() {
   const initialInvite = useMemo(() => (sp.get("invite") ?? "").trim(), [sp]);
 
   const [inviteCode, setInviteCode] = useState<string>(initialInvite);
-  const [inviteStatus, setInviteStatus] = useState<"idle" | "validating" | "valid" | "invalid">(
-    initialInvite ? "validating" : "idle"
-  );
+  const [inviteStatus, setInviteStatus] = useState<
+    "idle" | "validating" | "valid" | "invalid"
+  >(initialInvite ? "validating" : "idle");
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [role, setRole] = useState<string>("user"); // Default role is "user"
 
@@ -50,14 +49,16 @@ export default function Signup() {
   const [signupComplete, setSignupComplete] = useState(false);
 
   // redirect if already logged
-  React.useEffect(() => {
+  useEffect(() => {
     if (!loading && user) {
       nav(next, { replace: true });
     }
   }, [loading, user, next, nav]);
 
   useEffect(() => {
-    if (initialInvite) validateInvite(initialInvite);
+    // If the page was opened with an invite in query, run quick syntactic check
+    if (initialInvite) quickValidateInvite(initialInvite);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialInvite]);
 
   // cleanup object URL preview
@@ -71,75 +72,31 @@ export default function Signup() {
     return () => URL.revokeObjectURL(url);
   }, [avatarFile]);
 
-  async function validateInvite(token: string) {
-    if (!token.trim()) {
+  // Simple syntactic validation for invite token:
+  // We cannot query invites by plaintext token if the DB stores only hashes.
+  // So here we only check length/format and explain to the user that the server will validate on login/confirm.
+  function quickValidateInvite(token: string) {
+    const t = (token || "").trim();
+    if (!t) {
       setInviteStatus("idle");
       setInviteMessage(null);
       return;
     }
-
     setInviteStatus("validating");
     setInviteMessage(null);
 
-    try {
-      const { data, error } = await supabase
-        .from("invites")
-        .select("token, expires_at, used, uses, uses_limit, single_use, issued_to_email, role")
-        .eq("token", token)
-        .maybeSingle();
-
-      if (error) {
-        console.error("validateInvite supabase error", error);
-        setInviteStatus("invalid");
-        setInviteMessage("Erro ao validar convite.");
-        return;
-      }
-
-      if (!data) {
-        setInviteStatus("invalid");
-        setInviteMessage("Convite não encontrado.");
-        return;
-      }
-
-      if (data.used) {
-        setInviteStatus("invalid");
-        setInviteMessage("Convite já utilizado.");
-        return;
-      }
-
-      if (data.expires_at) {
-        const expires = new Date(data.expires_at).getTime();
-        if (Number.isFinite(expires) && Date.now() > expires) {
-          setInviteStatus("invalid");
-          setInviteMessage("Convite expirado.");
-          return;
-        }
-      }
-
-      if (typeof data.uses_limit === "number" && typeof data.uses === "number") {
-        if (data.uses_limit > 0 && data.uses >= data.uses_limit) {
-          setInviteStatus("invalid");
-          setInviteMessage("Convite atingiu o número máximo de usos.");
-          return;
-        }
-      }
-
-      setInviteStatus("valid");
-      setInviteMessage(
-        data.issued_to_email
-          ? `Convite válido (destinado a ${data.issued_to_email}).`
-          : "Convite válido — será aplicado no cadastro."
-      );
-
-      // Set the role from the invite data (if exists)
-      if (data.role) {
-        setRole(data.role); // Assign role from invite
-      }
-    } catch (error) {
-      console.error("validateInvite error", error);
+    // adjust min length to match your token format (consume_invite checks length >= 16)
+    if (t.length < 16) {
       setInviteStatus("invalid");
-      setInviteMessage("Erro ao validar o convite.");
+      setInviteMessage("Código de convite muito curto.");
+      return;
     }
+
+    // syntactically looks ok — server will verify when session exists
+    setInviteStatus("valid");
+    setInviteMessage(
+      "Formato do convite OK. O convite será verificado e aplicado quando você confirmar o e‑mail e fizer login."
+    );
   }
 
   // Format phone input as user types: (DD)NNNNNNNNN (max 11 digits: 2 DDD + 9 number)
@@ -159,8 +116,6 @@ export default function Signup() {
     }
     setAvatarError(null);
     setAvatarFile(file);
-    // clear manual URL if a file is chosen (optional)
-    // setAvatarUrl("");
   }
 
   // Upload avatar file to storage under a path that includes the userId so it's easy to manage
@@ -172,12 +127,12 @@ export default function Signup() {
 
     try {
       const ext = avatarFile.name.split(".").pop() ?? "png";
-      const fileName = `avatar.${ext}`; // use a consistent name inside the user folder
+      const fileName = `avatar.${ext}`;
       const path = `avatars/${userId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage.from("avatars").upload(path, avatarFile, {
         cacheControl: "3600",
-        upsert: true, // allow replacing user's avatar
+        upsert: true,
       });
 
       if (uploadError) {
@@ -204,26 +159,41 @@ export default function Signup() {
     }
   }
 
+  // Persist pending invite/display_name so AuthContext can consume after user confirms email and logs in
+  function persistPendingInvite(token?: string, display?: string) {
+    try {
+      if (typeof window === "undefined") return;
+      if (token) {
+        localStorage.setItem("pending_invite", token);
+        localStorage.setItem("pending_display_name", display ?? "");
+      } else {
+        localStorage.removeItem("pending_invite");
+        localStorage.removeItem("pending_display_name");
+      }
+    } catch (e) {
+      console.warn("localStorage set failed", e);
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setErr("");
     setSubmitting(true);
 
     try {
-      // sign up
-      const { data: signData, error: signError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      // sign up — include emailRedirectTo so confirmation links point back to app (HashRouter)
+      const { data: signData, error: signError } = await supabase.auth.signUp(
+        { email, password },
+        { options: { emailRedirectTo: `${window.location.origin}/#/login` } }
+      );
 
       if (signError) throw signError;
 
-      // Try to obtain user id
+      // Try to obtain user id (may exist only if signUp created session)
       let userId: string | null = null;
       if (signData && (signData as any).user && (signData as any).user.id) {
         userId = (signData as any).user.id;
       } else {
-        // try getUser fallback (may require session cookie)
         try {
           const current = await supabase.auth.getUser();
           userId = current?.data?.user?.id ?? null;
@@ -232,22 +202,51 @@ export default function Signup() {
         }
       }
 
-      // If we managed to create a user and there is an avatar file, upload it under avatars/{userId}/avatar.ext
+      // Persist pending invite/display_name so AuthContext can handle consumption after email confirmation/login
+      if (inviteCode) {
+        persistPendingInvite(inviteCode, displayName);
+      } else {
+        persistPendingInvite(undefined, undefined);
+      }
+
+      // If we have a session/user id, we can attempt to consume invite immediately
+      let rpcResult: any = null;
+      if (inviteCode && userId) {
+        try {
+          const { data: rpcData, error: rpcErr } = await supabase.rpc("consume_invite", {
+            in_token: inviteCode,
+            in_display_name: displayName || null,
+          } as any);
+
+          if (rpcErr) {
+            console.warn("consume_invite rpc error:", rpcErr);
+            // keep pending invite in localStorage — AuthContext will try on next login/confirm
+          } else {
+            rpcResult = rpcData;
+            // consumed successfully, remove pending invite keys
+            persistPendingInvite(undefined, undefined);
+          }
+        } catch (rpcErr) {
+          console.warn("consume_invite rpc threw:", rpcErr);
+        }
+      }
+
+      // Upload avatar if we have userId and a file
       let finalAvatarUrl: string | null = avatarUrl || null;
       if (userId && avatarFile) {
         const uploadedUrl = await uploadAvatarForUser(userId);
         if (uploadedUrl) finalAvatarUrl = uploadedUrl;
       }
 
-      // Upsert profile (if userId available). If consume RPC already set collaborator role server-side
-      // you can still upsert to ensure display_name/email present.
+      // Upsert profile (ensure display_name, contact, avatar present)
+      // Server-side RPC already upserts role when invite consumed, so we avoid overwriting role unless we don't have rpc result
       if (userId) {
         const profilePayload: any = {
           id: userId,
           email,
           display_name: displayName || null,
-          role: role, // Set role based on invite
-          avatar_url: finalAvatarUrl || null, // ensure this matches your table field name avatar_url
+          role: rpcResult?.role ?? role ?? "user",
+          avatar_url: finalAvatarUrl || null,
           contact_email: email,
           contact_phone: contactPhone || null,
           organization: organization || null,
@@ -260,7 +259,7 @@ export default function Signup() {
         }
       }
 
-      // Instead of redirecting immediately, show confirmation message telling user to validate email.
+      // Show confirmation message instructing user to validate email (if confirmation required)
       setSignupComplete(true);
     } catch (e: any) {
       console.error(e);
@@ -281,7 +280,7 @@ export default function Signup() {
             Obrigado pelo cadastro. Enviamos um e-mail para{" "}
             <strong className="text-black">{email}</strong> com um link para validar sua conta.
             Por favor, verifique sua caixa de entrada (e a pasta de spam) e clique no link para
-            confirmar seu cadastro. Após confirmar, você poderá entrar normalmente.
+            confirmar seu cadastro. Após confirmar, faça login para que possamos aplicar o convite (se houver).
           </p>
         </div>
 
@@ -373,7 +372,7 @@ export default function Signup() {
           </div>
         </div>
 
-        {/* Avatar field: file upload (will be uploaded after signup) + optional URL preview */}
+        {/* Avatar field */}
         <div>
           <label className="block text-sm font-medium text-gray-200" htmlFor="avatar">
             Avatar (imagem)
@@ -402,12 +401,7 @@ export default function Signup() {
 
             {avatarPreviewUrl || avatarUrl ? (
               <div className="w-20 h-20 rounded overflow-hidden border">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={avatarPreviewUrl || avatarUrl}
-                  alt="Avatar preview"
-                  className="w-full h-full object-cover"
-                />
+                <img src={avatarPreviewUrl || avatarUrl} alt="Avatar preview" className="w-full h-full object-cover" />
               </div>
             ) : (
               <div className="w-20 h-20 rounded bg-gray-100 flex items-center justify-center text-xs text-gray-400 border">
@@ -457,13 +451,13 @@ export default function Signup() {
               type="text"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
-              onBlur={() => validateInvite(inviteCode.trim())}
+              onBlur={() => quickValidateInvite(inviteCode.trim())}
               placeholder="Insira o código do convite"
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
             />
             <button
               type="button"
-              onClick={() => validateInvite(inviteCode.trim())}
+              onClick={() => quickValidateInvite(inviteCode.trim())}
               disabled={!inviteCode.trim() || inviteStatus === "validating"}
               className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
             >
