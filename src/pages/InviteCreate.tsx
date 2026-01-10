@@ -1,31 +1,9 @@
-//src/pages/InviteCreate.tsx
+// src/pages/InviteCreate.tsx
 
 import React, { FormEvent, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../auth/AuthContext";
-
-/**
- * Tela para criar convites (invites).
- *
- * Tabela de destino (colunas fornecidas pelo usuário):
- * - id
- * - created_at
- * - created_by
- * - uses
- * - revoked_at
- * - expires_at
- * - max_uses
- * - token
- * - role_to_grant
- *
- * Comportamento:
- * - Permite gerar token aleatório ou colocar token manual.
- * - Define role a ser concedida.
- * - Define data de expiração (opcional).
- * - Define número máximo de usos (opcional; 0 = ilimitado).
- * - Insere um novo registro em "invites" e mostra o token gerado/confirmado.
- */
 
 function generateToken(length = 32) {
   const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -62,7 +40,6 @@ export default function InviteCreate() {
 
   function localDatetimeToISO(value: string | ""): string | null {
     if (!value) return null;
-    // value is in "yyyy-mm-ddThh:mm" format (no timezone). Convert to ISO.
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return null;
     return d.toISOString();
@@ -82,18 +59,15 @@ export default function InviteCreate() {
         uses: 0,
       };
 
-      // max_uses: if empty or <= 0 => null (meaning unlimited), else store number
       if (maxUses === "" || Number(maxUses) <= 0) {
         payload.max_uses = null;
       } else {
         payload.max_uses = Number(maxUses);
       }
 
-      // expires_at: convert to ISO or null
       const isoExpires = localDatetimeToISO(expiresAt);
       payload.expires_at = isoExpires;
 
-      // insert into invites; return inserted row
       const { data, error } = await supabase
         .from("invites")
         .insert([payload])
@@ -105,7 +79,6 @@ export default function InviteCreate() {
         throw error;
       }
 
-      // Show success with token and other info
       setSuccessData({
         id: (data as any)?.id,
         token: (data as any)?.token ?? payload.token,
@@ -125,7 +98,6 @@ export default function InviteCreate() {
     if (!successData?.token) return;
     try {
       await navigator.clipboard.writeText(successData.token);
-      // small user feedback could be added (toast), but keeping simple
     } catch (e) {
       console.error("copy failed", e);
     }
@@ -172,7 +144,6 @@ export default function InviteCreate() {
             <button
               type="button"
               onClick={() => {
-                // reset form to create another
                 setSuccessData(null);
                 setToken(generateToken(24));
                 setExpiresAt("");
@@ -186,7 +157,7 @@ export default function InviteCreate() {
 
             <button
               type="button"
-              onClick={() => nav("/invites")} // assumes an invites list route; adjust if different
+              onClick={() => nav("/invites")}
               className="py-2 px-4 bg-gray-200 text-black rounded hover:bg-gray-300"
             >
               Ver convites
@@ -307,3 +278,4 @@ export default function InviteCreate() {
     </main>
   );
 }
+```
