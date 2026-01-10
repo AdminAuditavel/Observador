@@ -1,7 +1,5 @@
 //src/components/VisualFeedDetail.tsx
 
-// src/components/VisualFeedDetail.tsx
-
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
