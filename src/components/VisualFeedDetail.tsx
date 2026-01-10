@@ -1,8 +1,9 @@
 // src/components/VisualFeedDetail.tsx
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../auth/AuthContext";
 
 type Observation = {
   id: string;
@@ -76,8 +77,10 @@ const FALLBACK_AVATAR =
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=160&h=160";
 
 const VisualFeedDetail: React.FC = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const nav = useNavigate();
+  const loc = useLocation();
+  const { id } = useParams();  
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string>("");
@@ -107,6 +110,20 @@ const VisualFeedDetail: React.FC = () => {
     const r = author?.role;
     return r === "admin" || r === "collaborator";
   }, [author?.role]);
+
+  async function onConfirm() {
+    if (loading) return;
+  
+    if (!user) {
+      nav(`/login?next=/post/${id}`, {
+        state: { background: loc.state?.background },
+      });
+      return;
+    }
+  
+    // usuário logado → confirmar normalmente
+    await confirmObservation(id!);
+  }
 
   async function refreshConfirmationState(observationId: string, uid: string) {
     // count
