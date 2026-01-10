@@ -96,7 +96,11 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  // Use a sensible default avatar (can be replaced by actual user data later)
+  const USER_AVATAR = POSTS_SBSP?.[0]?.authorAvatar || 'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?auto=format&fit=crop&q=80&w=200&h=200&crop=faces';
 
   const handleAddPost = (newPost: VisualPost) => {
     setPosts([newPost, ...posts]);
@@ -206,7 +210,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
         </div>
 
         <div className="relative z-10 flex flex-col h-full justify-between p-4 pb-6">
-          {/* Top row: menu (left), centered search (same visual style as buttons), favorite (right) */}
+          {/* Top row: menu (left), centered search (same visual style as buttons), user avatar (right) */}
           <div className="relative flex items-center justify-between">
             <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10">
               <span className="material-symbols-outlined">menu</span>
@@ -245,8 +249,16 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
               </form>
             </div>
 
-            <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10">
-              <span className="material-symbols-outlined">star</span>
+            {/* Right: user avatar replaces the previous star button */}
+            <button
+              aria-label="Abrir perfil"
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10 overflow-hidden"
+              onClick={() => {
+                // placeholder: navigate to profile if desired
+                // navigate('/profile');
+              }}
+            >
+              <img src={USER_AVATAR} alt="Avatar do usuário" className="h-10 w-10 object-cover rounded-full" />
             </button>
           </div>
 
@@ -263,9 +275,23 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                 </span>
               </div>
 
-              <h1 className="text-white text-3xl font-bold leading-tight tracking-tight drop-shadow-lg">
-                {AIRPORT_SBSP.name}
-              </h1>
+              {/* Airport name with smaller font and star favorite on the same line */}
+              <div className="flex items-center gap-3">
+                <h1 className="text-white text-2xl md:text-3xl font-bold leading-tight tracking-tight drop-shadow-lg">
+                  {AIRPORT_SBSP.name}
+                </h1>
+
+                <button
+                  aria-pressed={isFavorited}
+                  onClick={() => setIsFavorited(prev => !prev)}
+                  title={isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                  className={`flex items-center justify-center h-9 w-9 rounded-full transition-all ${isFavorited ? 'bg-yellow-500 text-white' : 'bg-white/5 text-gray-300 border border-white/10'}`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">
+                    {isFavorited ? 'star' : 'star_outline'}
+                  </span>
+                </button>
+              </div>
             </div>
 
             <button className="flex w-full items-center justify-center h-11 bg-primary hover:bg-blue-600 active:bg-blue-700 transition-colors rounded-lg text-white gap-2 px-4 text-sm font-bold shadow-lg shadow-blue-900/20">
