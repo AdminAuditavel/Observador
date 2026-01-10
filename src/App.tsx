@@ -7,6 +7,7 @@ import VisualFeedDetail from "./components/VisualFeedDetail";
 import NotamDetail from "./components/NotamDetail";
 import WeatherModal from "./components/WeatherModal";
 import Login from "./pages/Login";
+import { AuthProvider } from "./auth/AuthContext";
 
 type LocationState = {
   background?: ReturnType<typeof useLocation>;
@@ -50,7 +51,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <HashRouter>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </HashRouter>
   );
 };
