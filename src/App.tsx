@@ -6,6 +6,7 @@ import AirportHome from "./components/AirportHome";
 import VisualFeedDetail from "./components/VisualFeedDetail";
 import NotamDetail from "./components/NotamDetail";
 import WeatherModal from "./components/WeatherModal";
+import Login from "./pages/Login";
 
 type LocationState = {
   background?: ReturnType<typeof useLocation>;
@@ -27,6 +28,7 @@ const AppContent: React.FC = () => {
           path="/"
           element={<AirportHome onOpenWeather={() => setWeatherModalOpen(true)} />}
         />
+        <Route path="/login" element={<Login />} />
         <Route path="/post/:id" element={<VisualFeedDetail />} />
         <Route path="/notam/:id" element={<NotamDetail />} />
       </Routes>
