@@ -206,10 +206,45 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
         </div>
 
         <div className="relative z-10 flex flex-col h-full justify-between p-4 pb-6">
-          <div className="flex items-center justify-between">
+          {/* Top row: menu (left), centered search (same visual style as buttons), favorite (right) */}
+          <div className="relative flex items-center justify-between">
             <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10">
               <span className="material-symbols-outlined">menu</span>
             </button>
+
+            {/* Centered search positioned absolutely so it doesn't push side buttons.
+                Styled to match the small rounded buttons (bg-black/20, border, backdrop blur). */}
+            <div className="absolute left-1/2 top-0 transform -translate-x-1/2">
+              <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar (SBSP ou Sierra Bravo Sierra Papa)"
+                  aria-label="Buscar aeroporto por código ou alfabeto fonético"
+                  className="h-10 text-sm bg-black/20 backdrop-blur-md placeholder-gray-300 text-white px-3 rounded-full border border-white/10 focus:outline-none focus:ring-1 focus:ring-primary w-[220px] md:w-[320px] transition-all"
+                />
+                <button
+                  type="submit"
+                  className="flex items-center justify-center h-10 w-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10 hover:bg-black/30 active:scale-95 transition-all"
+                  aria-label="Pesquisar"
+                >
+                  <span className="material-symbols-outlined text-[18px]">search</span>
+                </button>
+
+                <button
+                  type="button"
+                  aria-pressed={isListening}
+                  onClick={() => (isListening ? stopListening() : startListening())}
+                  title={isListening ? 'Parar escuta' : 'Falar (alfabeto fonético)'}
+                  className={`flex items-center justify-center h-10 w-10 rounded-full border ${isListening ? 'bg-red-600 border-red-700' : 'bg-black/20 border-white/10'} text-white transition-all`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">
+                    {isListening ? 'mic' : 'mic_none'}
+                  </span>
+                </button>
+              </form>
+            </div>
+
             <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10">
               <span className="material-symbols-outlined">star</span>
             </button>
@@ -217,37 +252,6 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
 
           <div className="flex flex-col gap-3">
             <div>
-              {/* NEW: search moved one line above to avoid crowding on mobile */}
-              <div className="mb-2">
-                <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full">
-                  <input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar (ex: SBSP ou fale: Sierra Bravo Sierra Papa)"
-                    aria-label="Buscar aeroporto por código ou alfabeto fonético"
-                    className="text-xs bg-white/5 placeholder-gray-400 text-white px-3 py-2 rounded-md border border-white/5 focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-[320px] transition-all"
-                  />
-                  <button
-                    type="submit"
-                    className="h-9 px-3 rounded-md bg-primary text-white text-sm font-medium hover:bg-blue-600 active:scale-95 transition-all"
-                  >
-                    Ir
-                  </button>
-
-                  <button
-                    type="button"
-                    aria-pressed={isListening}
-                    onClick={() => (isListening ? stopListening() : startListening())}
-                    title={isListening ? 'Parar escuta' : 'Falar (alfabeto fonético)'}
-                    className={`flex items-center justify-center h-9 w-9 rounded-md border ${isListening ? 'bg-red-600 border-red-700' : 'bg-white/5 border-white/10'} text-white transition-all`}
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      {isListening ? 'mic' : 'mic_none'}
-                    </span>
-                  </button>
-                </form>
-              </div>
-
               <div className="flex items-center gap-2 mb-1">
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white border border-white/10 uppercase">
                   {AIRPORT_SBSP.icao} / {AIRPORT_SBSP.iata}
