@@ -37,7 +37,7 @@ export default function Signup() {
   const initialInvite = useMemo(() => (sp.get("invite") ?? "").trim(), [sp]);
 
   const [inviteCode, setInviteCode] = useState<string>(initialInvite);
-  const [inviteStatus, setInviteStatus] = useState<"idle" | "validating" | "valid" | "invalid">(initialInvite ? "validating" : "idle"));
+  const [inviteStatus, setInviteStatus] = useState<"idle" | "validating" | "valid" | "invalid">(initialInvite ? "validating" : "idle");
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
 
   // redirect if already logged
