@@ -1,5 +1,7 @@
 // src/components/AirportHome.tsx
 
+// src/components/AirportHome.tsx
+
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AIRPORT_SBSP, TIMELINE_SBSP } from "../services/mockData";
@@ -148,8 +150,6 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
   const { user } = useAuth();
   const [posts, setPosts] = useState<VisualPost[]>([]);
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteCode, setInviteCode] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -163,9 +163,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
     setPosts([newPost, ...posts]);
   };
 
-  const openNewPost = () => {
-    setIsNewPostModalOpen(true);
-  };
+  const openNewPost = () => setIsNewPostModalOpen(true);
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -583,11 +581,14 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
-                  if (!user || user.role !== "collaborator") {
-                    setShowInviteModal(true); // Abre o modal de convite
+                  // Se é colaborador autenticado, abre o modal de criação
+                  if (user && (user as any).role === "collaborator") {
+                    openNewPost();
                     return;
                   }
-                  openNewPost(); // Abre o modal de postagem para colaboradores
+                  // Se não autenticado / não colaborador, direciona ao login
+                  // Após login o usuário voltará para esta página (next)
+                  navigate(`/login?next=${encodeURIComponent(location.pathname)}`);
                 }}
                 className="flex items-center justify-center h-14 w-14 rounded-full bg-gray-800 text-white"
                 aria-label="Criar um novo post"
@@ -663,60 +664,6 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
           ))}
         </section>
       </main>
-
-      {/* Modal de Convite (inline: inserir link/código de convite) */}
-      {showInviteModal && (
-        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl text-center max-w-md mx-auto">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Acesso por convite necessário!</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Para criar um post, você precisa ser colaborador. Se você recebeu um link ou código de convite,
-              cole-o abaixo para continuar para o cadastro com convite. Caso já tenha conta, faça login.
-            </p>
-
-            <div className="flex gap-2 mb-4">
-              <input
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
-                placeholder="Cole o link ou código de convite"
-                className="w-full px-3 py-2 border rounded-md text-sm"
-                aria-label="Código de convite"
-              />
-              <button
-                onClick={() => {
-                  const code = encodeURIComponent(inviteCode.trim());
-                  if (!code) return;
-                  navigate(`/signup?invite=${code}`);
-                  setShowInviteModal(false);
-                }}
-                disabled={!inviteCode.trim()}
-                className={`px-4 py-2 rounded-md text-white ${inviteCode.trim() ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-300 cursor-not-allowed"}`}
-              >
-                Usar convite
-              </button>
-            </div>
-
-            <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={() => {
-                  navigate("/login");
-                  setShowInviteModal(false);
-                }}
-                className="px-4 py-2 bg-transparent text-blue-600 rounded-md hover:underline transition-all"
-              >
-                Fazer login
-              </button>
-
-              <button
-                onClick={() => setShowInviteModal(false)}
-                className="px-4 py-2 text-gray-600 rounded-md hover:underline transition-all"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {isNewPostModalOpen && (
         <NewPostModal onClose={() => setIsNewPostModalOpen(false)} onAdd={handleAddPost} />
