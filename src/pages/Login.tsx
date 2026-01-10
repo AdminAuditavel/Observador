@@ -1,4 +1,4 @@
-//src/pages/Login.tsx
+// src/pages/Login.tsx
 
 import React, { FormEvent, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -52,15 +52,15 @@ export default function Login() {
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 560, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Observer</h1>
+    <main className="p-6 max-w-md mx-auto">
+      <h1 className="text-3xl font-semibold text-white mb-6">Observer</h1>
 
-      <p style={{ fontSize: 12, opacity: 0.8, marginBottom: 16 }}>
-        Após login, você retorna para: <code>{next}</code>
+      <p className="text-sm text-gray-400 mb-6">
+        Após login, você será redirecionado para: <code>{next}</code>
       </p>
 
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 10 }}>
-        <label style={{ display: "grid", gap: 6 }}>
+      <form onSubmit={onSubmit} className="space-y-6">
+        <label className="flex flex-col gap-2 text-sm text-white">
           <span>Email</span>
           <input
             value={email}
@@ -68,11 +68,11 @@ export default function Login() {
             autoComplete="email"
             inputMode="email"
             required
-            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+            className="p-3 rounded-lg border border-gray-600 bg-gray-800 text-white"
           />
         </label>
 
-        <label style={{ display: "grid", gap: 6 }}>
+        <label className="flex flex-col gap-2 text-sm text-white">
           <span>Senha</span>
           <input
             value={password}
@@ -80,21 +80,16 @@ export default function Login() {
             type="password"
             autoComplete="current-password"
             required
-            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+            className="p-3 rounded-lg border border-gray-600 bg-gray-800 text-white"
           />
         </label>
 
-        {err && <p style={{ color: "crimson" }}>{err}</p>}
+        {err && <p className="text-red-500 text-sm">{err}</p>}
 
         <button
           disabled={submitting}
           type="submit"
-          style={{
-            padding: "10px 12px",
-            borderRadius: 10,
-            border: "1px solid #ddd",
-            cursor: "pointer",
-          }}
+          className="w-full p-3 rounded-lg bg-primary hover:bg-blue-600 active:bg-blue-700 transition-colors text-white"
         >
           {submitting ? "Aguarde..." : "Entrar"}
         </button>
@@ -102,16 +97,20 @@ export default function Login() {
         <button
           type="button"
           onClick={() => nav(`/signup?next=${encodeURIComponent(next)}`)}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 10,
-            border: "1px solid #ddd",
-            cursor: "pointer",
-            opacity: 0.9,
-          }}
+          className="w-full p-3 rounded-lg border border-gray-600 bg-gray-700 text-white mt-4"
         >
           Criar conta
         </button>
+
+        <div className="text-center mt-6">
+          <button
+            type="button"
+            onClick={() => nav("/forgot-password")}
+            className="text-sm text-blue-400 hover:underline"
+          >
+            Esqueceu sua senha?
+          </button>
+        </div>
       </form>
     </main>
   );
