@@ -588,7 +588,31 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
             >
               <span className="material-symbols-outlined text-[28px]">photo_camera</span>
               {!user && (
-                <span className="text-xs font-medium mt-2">Acesso por convite</span>
+                <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50">
+                  <div className="bg-white p-6 rounded-lg shadow-xl text-center max-w-md mx-auto">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">
+                      Acesso por convite necessário!
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Para criar um post, você precisa estar logado como colaborador. Solicite um convite ou
+                      faça login.
+                    </p>
+                    <button
+                      onClick={() => navigate("/login")}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all"
+                    >
+                      Fazer login
+                    </button>
+                    <div className="mt-3">
+                      <button
+                        onClick={() => navigate("/signup")}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Solicitar convite
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </button>
           </div>
