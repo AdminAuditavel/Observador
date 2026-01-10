@@ -11,8 +11,8 @@ export const AIRPORT_SBSP: Airport = {
   distance: '12nm NE',
   lastUpdate: '2m',
   bgImage: 'https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&q=80&w=1200',
-  metar: 'METAR SBSP 151400Z 14008KT 9999 SCT030 24/16 Q1018',
-  status: 'VFR',
+  metar: 'METAR SBSP 101000Z 04002KT 1800 -RA BR SCT002 BKN004 OVC050 24/24 Q1013',
+  status: 'IFR',
   stats: {
     wind: '140°/8',
     visibility: '10km+',
