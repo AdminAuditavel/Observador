@@ -575,10 +575,15 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
               </span>
             </div>
             <button
-              onClick={() => setIsNewPostModalOpen(true)}
-              className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-white shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+              onClick={() => {
+                if (!user) {
+                  alert("Acesso por convite. Faça login para continuar.");
+                  return;
+                }
+                openNewPost();
+              }}
             >
-              <span className="material-symbols-outlined text-[24px]">add_a_photo</span>
+              <span className="material-symbols-outlined">photo_camera</span>
             </button>
           </div>
 
