@@ -577,13 +577,19 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
             <button
               onClick={() => {
                 if (!user) {
+                  setIsNewPostModalOpen(false); // Só esconde o modal de novo post
                   alert("Acesso por convite. Faça login para continuar.");
                   return;
                 }
                 openNewPost();
               }}
+              className="flex flex-col items-center justify-center h-16 w-16 rounded-full bg-primary hover:bg-blue-600 active:bg-blue-700 transition-colors shadow-lg text-white"
+              aria-label="Criar um novo post"
             >
-              <span className="material-symbols-outlined">photo_camera</span>
+              <span className="material-symbols-outlined text-[28px]">photo_camera</span>
+              {!user && (
+                <span className="text-xs font-medium mt-2">Acesso por convite</span>
+              )}
             </button>
           </div>
 
