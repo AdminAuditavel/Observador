@@ -40,6 +40,9 @@ export default function Signup() {
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [role, setRole] = useState<string>("user"); // Default role is "user"
 
+  // New states for UX after sign up
+  const [signupComplete, setSignupComplete] = useState(false);
+
   // redirect if already logged
   React.useEffect(() => {
     if (!loading && user) {
@@ -115,12 +118,19 @@ export default function Signup() {
       if (data.role) {
         setRole(data.role); // Assign role from invite
       }
-
     } catch (error) {
       console.error("validateInvite error", error);
       setInviteStatus("invalid");
       setInviteMessage("Erro ao validar o convite.");
     }
+  }
+
+  // Format phone input as user types: (DD)NNNNNNNNN (max 11 digits: 2 DDD + 9 number)
+  function formatPhoneInput(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 11); // max 11 digits total
+    if (digits.length === 0) return "";
+    if (digits.length <= 2) return `(${digits}`;
+    return `(${digits.slice(0, 2)})${digits.slice(2)}`;
   }
 
   async function onSubmit(e: FormEvent) {
@@ -172,14 +182,50 @@ export default function Signup() {
         }
       }
 
-      // navigate back to next (signup may require email confirmation; still redirect)
-      nav(next, { replace: true });
+      // Instead of redirecting immediately, show confirmation message telling user to validate email.
+      setSignupComplete(true);
     } catch (e: any) {
       console.error(e);
       setErr(e?.message || "Falha ao criar conta. Verifique e tente novamente.");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // If sign up finished, show confirmation message prompting email validation
+  if (signupComplete) {
+    return (
+      <main className="max-w-lg mx-auto py-6 px-4">
+        <h1 className="text-2xl font-bold mb-4">Cadastro Criado</h1>
+
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
+          <p className="text-sm text-yellow-800">
+            Obrigado pelo cadastro. Enviamos um e-mail para{" "}
+            <strong className="text-black">{email}</strong> com um link para validar sua conta.
+            Por favor, verifique sua caixa de entrada (e a pasta de spam) e clique no link para
+            confirmar seu cadastro. Após confirmar, você poderá entrar normalmente.
+          </p>
+        </div>
+
+        <div className="flex space-x-2">
+          <button
+            type="button"
+            onClick={() => nav(`/login?next=${encodeURIComponent(next)}`)}
+            className="py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+          >
+            Ir para Login
+          </button>
+
+          <button
+            type="button"
+            onClick={() => nav("/")}
+            className="py-2 px-4 bg-gray-200 text-black rounded-md hover:bg-gray-300"
+          >
+            Voltar para Home
+          </button>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -237,10 +283,13 @@ export default function Signup() {
           <input
             id="contactPhone"
             type="tel"
+            inputMode="tel"
             value={contactPhone}
-            onChange={(e) => setContactPhone(e.target.value)}
+            onChange={(e) => setContactPhone(formatPhoneInput(e.target.value))}
+            placeholder="(93)991010203"
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
           />
+          <p className="text-xs text-gray-400 mt-1">Formato: (DD)NNNNNNNNN — ex: (93)991010203</p>
         </div>
 
         {/* Organization */}
