@@ -444,7 +444,7 @@ const AirportHome: React.FC<AirportHomeProps> = ({ onOpenWeather }) => {
                 // navigate('/profile');
               }}
             >
-              <img src={_AVATAR} alt="Avatar do usuário" className="h-10 w-10 object-cover rounded-full" />
+              <img src={USER_AVATAR} alt="Avatar do usuário" className="h-10 w-10 object-cover rounded-full" />
             </button>
           </div>
 
