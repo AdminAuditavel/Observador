@@ -1,3 +1,4 @@
+//src/components/WeatherModal.tsx
 
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
